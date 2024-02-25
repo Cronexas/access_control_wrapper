@@ -122,10 +122,10 @@ module wrapper_ibex_pmp_fsm2(
   
     if (tl_cpu2csr.a_valid && tl_csr2cpu.a_ready) begin                    
       ack_outstanding_d = 1'b1;   
+      source_id_d = tl_cpu2csr.a_source;
+      cpu_addr_sel = tl_cpu2csr.a_address & 5'b11111;
       if (tl_cpu2csr.a_opcode == PutFullData || tl_cpu2csr.a_opcode == PutPartialData) begin                                                                  
         ack_opcode_d = AccessAck;
-        source_id_d = tl_cpu2csr.a_source;
-        cpu_addr_sel = tl_cpu2csr.a_address & 5'b11111;
     
         case (cpu_addr_sel)
         
@@ -156,8 +156,6 @@ module wrapper_ibex_pmp_fsm2(
   
       end else if (tl_cpu2csr.a_opcode == Get) begin                                        
         ack_opcode_d = AccessAckData;
-        source_id_d = tl_cpu2csr.a_source;
-        cpu_addr_sel = tl_cpu2csr.a_address & 5'b11111;
         
         case (cpu_addr_sel)
         
