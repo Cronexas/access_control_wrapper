@@ -1,0 +1,216 @@
+//Comapre to: github.com/mortepau/tfe4171
+
+//Imports necessary for dataclasses
+import tlul_pkg::*;
+import ibex_pkg::*;
+//Parameters
+parameter int unsigned            PMPGranularity = 0;    
+parameter int unsigned            PMPNumChan = 1;
+parameter int unsigned            PMPNumRegions = 4;  
+
+
+module ACW_property_suite(rst,clk,irq_q,tl_h2pmp, tl_pmp2h,tl_d2pmp,tl_pmp2d,tl_cpu2csr, tl_csr2cpu,csr_pmp_cfg,current_state,wr_en_csr, cpu_addr_sel, rd_data_csr
+);
+//All IO of module access_control_wrapper.sv
+input logic 				rst;
+input logic 				clk;
+input logic 				irq_q;
+input tlul_pkg::tl_h2d_t 		tl_h2pmp;               		//TLUL message untrusted master to wrapper (pmp)
+input tlul_pkg::tl_d2h_t 		tl_pmp2h;               	//error response message to untrusted master if permission denied
+input tlul_pkg::tl_d2h_t	        tl_d2pmp;                 		//incoming message from device to pmp, gets relayed without change
+input tlul_pkg::tl_h2d_t	        tl_pmp2d;               	//send message to device, if permission granted by pmp
+input tlul_pkg::tl_h2d_t      		tl_cpu2csr;
+input tlul_pkg::tl_d2h_t        	tl_csr2cpu;         
+//Add additional signals of wrapper here.
+input ibex_pkg::pmp_cfg_t		csr_pmp_cfg [PMPNumRegions];
+input logic				current_state;
+input logic				wr_en_csr[4:0];
+input logic				cpu_addr_sel[4:0];
+input logic [31:0]			rd_data_csr[4:0];
+//{} 
+
+//For Discussion:
+//1)Actual ibex_pmp.sv input csr_pmp_cfg_i is type pmp_cfg_t (see ibex_pkg.sv) 
+//1)Each csr consist of 8 Bits. but here are always 32 bit mapped on 6 bits ?
+//2)Ask Dino for await_o
+`define true 1
+`include "tidal.sv"
+`begin_tda(ops)
+	//
+	
+	/////////////////////////////////
+	// 	PMP Blackbox???(:      //
+	////////////////////////////////
+	// CSR 5*32 Bits(where First 1*32 is acutal CSR). 4*32 Address
+	// for csr packages ibex_csr 
+	// wr_en_i: enables write of wr_data_i to register
+	// wr_data_i: input data; default 32 bit
+	// clk,rst : clock and reset (register set to all 0)
+	// rd_data_o: output data; equal to register value.
+	// rd_error_o, by default not defined, because shadow is set off.
+	// ACATUAL PMP-CSR (in Ibex_pkg only 6 bits defined)
+	// We have 4x 8 bit . 8 bit are shown in RISC-V Doc Fig 3.271 CSR[7:0]
+	// CSR[7] : Lock write to configuration register and associated addressed register is locked.
+	// CSR[6:5] : WIRI->Write Ignored Read Ignored
+	// CSR[4:3] : A Adress matching Mode 0: OFF, disabled;1: TOR (TopOfRange);
+	// 2:NA4,Naturally alligned 4Byte Region;3:NAPOT,Naturally aligned power-of-two-region >=8 bytes 
+	// if entry is set to TOR the previous entry is always treated as lower range.
+	// CSR[2] : X instruction execution permit
+	// CSR[1] : W: Write permit
+	// CSR[0] : R: Read permit
+	//=> Pattern A:both values;X:dont care;1/0:specified value only
+	//=>AXXA|AAAA the "|" is used for better overview
+	// PMP-ADDRESS 4x 32 Bit Register holding address
+	// csr_pmp_cfg_i connected to rd_data_o of csr.
+	// csr_pmp_addr_i
+	//a_data is 32 bit.
+	//a_address[4:0] are used to address the CSR registers holding 32bit each
+	//for a_opcode == PuttFullData or PutPartialData we write:		
+	//0->4x8Bit CSR ; 4->Address0;  8->Address1;  12->Address2;  16->Address3
+	//28->cpu_go_to_idle (cpu resolves blcok)
+	//for a_opcode == Get:
+	//0->4x8Bit CSR ; 4->Address0;  8->Address1;  12->Address2;  16->Address3
+	//20->get denied addr;  24->denied_req_type;  25->current_state;
+
+	/////////////////////////////////
+	// 		TileLink      //
+	////////////////////////////////
+	//Tilelink has a A-Channel (Ma->Sla) and D-Channel (Sla->Ma) lower
+	//lowercase letters idicate the flow direction.
+ 	//Section 4.1 of TileLink Doc describes ready-valid handshanking:
+	//ready-> sender must not (darf nicht) process data and sender consider not processed.
+	//valid-> receiver must not expect control or data signals to be syntactially correct TileLink beat.
+	//valid must(muss) never depend on ready.
+	//ready should be hold low by receiver. 
+	//valid must be no combinational from ready to valid, but can be.
+	//Therefor we can check for device ready low and host valid transmission to find a architectural mistake
+	//!!!!!!!For TileLink interface implementation we might consider pwm_reg-top of Open Titan
+	//first we write PMP CSR, 4*8 Bits, each of 8 bits is described above
+	
+	//Sequence waiting atleast 12 CLK to send ready 	
+	sequence t_ready; 
+		await_o(t, 1, tl_csr2cpu.a_ready, 1); 
+	endsequence
+	//property idea:
+	//L=Lock;X=Dont Care;AA=Adress matching mode;I=Instr.;W=Write;R=Read
+	// LXXA|AIWR => 1001|1111;0001|0111;1000|1000;0110|0000
+
+	property check_pmp_inputs_after_cpu_write_cfg;
+		
+		
+		//Format of address is not clear yet.
+		//First we write config in the first clock-cycle
+		//Afterwards we wait atleast 12 CLK to send next data.(total of 3 addresses)
+		t ##0 tl_cpu2csr.a_opcode == PutFullData and
+		t ##0 tl_cpu2csr.a_address == 32'hFFFFFF00 and
+		t ##0 tl_cpu2csr.a_data == 32'b10011111000101111000100001100000 and 
+		t ##0 tl_cpu2csr.a_source == 8'h00 and
+		t ##0 tl_cpu2csr.a_valid == 1'b1 and
+		t ##0 tl_csr2cpu.a_ready == 1'b1
+		
+		implies 
+
+		//csr_pmp_cfg is struct of ibex_pkg::pmp_cfg_t
+		// Order {cfg3,cfg2,cfg1,cfg0}
+		//Check if the cfg writting works
+		t ##0 cpu_addr_sel == 5'b00000 and
+		t ##0 wr_en_csr[0] == 1'b1 and
+		t ##1 tl_csr2cpu.a_ready == 1'b0 and
+		t ##1 csr_pmp_cfg[3].lock == 1'b1 and
+		t ##1 csr_pmp_cfg[2].lock == 1'b0 and
+		t ##1 csr_pmp_cfg[1].lock == 1'b1 and
+		t ##1 csr_pmp_cfg[0].lock == 1'b0 and
+		t ##1 csr_pmp_cfg[3].mode == PMP_MODE_NAPOT and
+		t ##1 csr_pmp_cfg[2].mode == PMP_MODE_NA4 and
+		t ##1 csr_pmp_cfg[1].mode == PMP_MODE_TOR and
+		t ##1 csr_pmp_cfg[0].mode == PMP_MODE_OFF and
+		t ##1 csr_pmp_cfg[3].exec == 1'b1 and
+		t ##1 csr_pmp_cfg[2].exec == 1'b1 and
+		t ##1 csr_pmp_cfg[1].exec == 1'b0 and
+		t ##1 csr_pmp_cfg[0].exec == 1'b0 and
+		t ##1 csr_pmp_cfg[3].write == 1'b1 and
+		t ##1 csr_pmp_cfg[2].write == 1'b1 and
+		t ##1 csr_pmp_cfg[1].write == 1'b0 and
+		t ##1 csr_pmp_cfg[0].write == 1'b0 and
+		t ##1 csr_pmp_cfg[3].read == 1'b1 and
+		t ##1 csr_pmp_cfg[2].read == 1'b1 and
+		t ##1 csr_pmp_cfg[1].read == 1'b0 and
+		t ##1 csr_pmp_cfg[0].read == 1'b0;
+		//t ##1 csr_pmp_cfg[3] == 6'b101111 and
+		//t ##1 csr_pmp_cfg[2] == 6'b010111 and
+		//t ##1 csr_pmp_cfg[1] == 6'b101000 and
+		//t ##1 csr_pmp_cfg[0] == 6'b000000 and
+		//t ##1 tl_csr2cpu.a_ready== 1'b1;
+		
+	endproperty
+
+
+	
+	property check_pmp_inputs_after_cpu_write_address0;
+		t ##0 tl_cpu2csr.a_opcode == PutFullData and
+		t ##0 tl_cpu2csr.a_address == 32'hFFFFFF04 and
+		t ##0 tl_cpu2csr.a_data == 32'b11111111111111111111111111110000 and 
+		t ##0 tl_cpu2csr.a_source == 8'h00 and
+		t ##0 tl_cpu2csr.a_valid == 1'b1 and
+		t ##0 tl_csr2cpu.a_ready == 1'b1 
+		implies
+		t ##1 rd_data_csr[1] == 32'b11111111111111111111111111110000;
+	endproperty
+
+	property check_pmp_inputs_after_cpu_write_address1;
+
+		t ##0 tl_cpu2csr.a_opcode == PutFullData and
+		t ##0 tl_cpu2csr.a_address == 32'hFFFFFF08 and
+		t ##0 tl_cpu2csr.a_data == 32'b11111111111111111111111111000000 and 
+		t ##0 tl_cpu2csr.a_source == 8'h00 and
+		t ##0 tl_cpu2csr.a_valid == 1'b1 and
+		t ##0 tl_csr2cpu.a_ready == 1'b1
+		implies
+		t ##1 rd_data_csr[2] == 32'b11111111111111111111111111000000;
+		
+
+	endproperty
+
+	property check_pmp_inputs_after_cpu_write_address2;
+		t ##0 tl_cpu2csr.a_opcode == PutFullData and
+		t ##0 tl_cpu2csr.a_address == 32'hFFFFFF0C and
+		t ##0 tl_cpu2csr.a_data == 32'b11111111111111111111110000000000 and 
+		t ##0 tl_cpu2csr.a_source == 8'h00 and
+		t ##0 tl_cpu2csr.a_valid == 1'b1 and
+		t ##0 tl_csr2cpu.a_ready == 1'b1
+		implies
+		t ##1 rd_data_csr[3] == 32'b11111111111111111111110000000000;
+
+	endproperty
+
+	property check_pmp_inputs_after_cpu_write_address3;
+		t ##0 tl_cpu2csr.a_opcode == PutFullData and
+		t ##0 tl_cpu2csr.a_address == 32'hFFFFFF10 and
+		t ##0 tl_cpu2csr.a_data == 32'b11111111111111111100000000000000 and 
+		t ##0 tl_cpu2csr.a_source == 8'h00 and
+		t ##0 tl_cpu2csr.a_valid == 1'b1 and
+		t ##0 tl_csr2cpu.a_ready == 1'b1
+		implies
+		t ##1 rd_data_csr[4] == 32'b11111111111111111100000000000000;
+
+	endproperty
+
+	//Here we will check 
+
+	//Here we check the State machine
+
+	//Let's talk about some changes.
+	//We might extend the FSM a bit, so we have a more common model instead of only a TUUL specific
+a_check_pmp_inputs_after_cpu_write_cfg:  assert property (@(posedge clk) disable iff (rst==0) check_pmp_inputs_after_cpu_write_cfg);
+a_check_pmp_inputs_after_cpu_write_address0:  assert property (@(posedge clk) disable iff (rst==0) check_pmp_inputs_after_cpu_write_address0);
+a_check_pmp_inputs_after_cpu_write_address1:  assert property (@(posedge clk) disable iff (rst==0) check_pmp_inputs_after_cpu_write_address1);
+a_check_pmp_inputs_after_cpu_write_address2:  assert property (@(posedge clk) disable iff (rst==0) check_pmp_inputs_after_cpu_write_address2);
+a_check_pmp_inputs_after_cpu_write_address3:  assert property (@(posedge clk) disable iff (rst==0) check_pmp_inputs_after_cpu_write_address3);
+
+
+
+`end_tda
+
+endmodule
+
+bind access_control_wrapper ACW_property_suite inst_ACW_property_suite(.*);
