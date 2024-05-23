@@ -62,26 +62,21 @@
   <summary>Table of Contents</summary>
   <ol>
     <li>
-      <a href="#about-the-project">About The Project</a>
+      <a href="#general-information">About The Project</a>
     </li>
     <li>
-      <a href="#getting-started">Getting Started</a>
-      <ul>
-        <li><a href="#prerequisites">Prerequisites</a></li>
-        <li><a href="#installation">Installation</a></li>
-      </ul>
+      <a href="#about-the-project">About The Project</a>
     </li>
-    <li><a href="#roadmap">Roadmap</a></li>
     <li><a href="#contact">Contact</a></li>
     <li><a href="#acknowledgments">Acknowledgments</a></li>
   </ol>
 </details>
 
 
-
-<!-- ABOUT THE PROJECT -->
 ## General Information
 We are avoiding the fraught terms master/slave and defaulting to host/device where applicable.
+<!-- ABOUT THE PROJECT -->
+
 ## About The Project
 The access control wrapper is designed with the aim of preventing third-party non-CPU master modules from violating System-on-Chip security. It includes the RISC-V Physical Memory Protection (PMP), Control Status Registers (CSR), a TileLink Uncached Lightweight (TL-UL) 
 CPU interface and an access control logic in the form of a finite state machine with two states: IDLE and BLOCK. The PMP configuration can only be written through the CPU interface and is independent of the state of the wrapper. Incoming messages from the master are 
@@ -104,7 +99,7 @@ Main tasks in this part:
 * Check out of Range behviour for address-space
 * Checking GET 
 
-####  regarding to specification:
+#### FSM implementation regarding to specification:
 Main tasks in this part:
 * Implementing FSM base contruct
 * Implementing State Transitions
