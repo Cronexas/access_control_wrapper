@@ -75,6 +75,9 @@
 
 ## General Information
 We are avoiding the fraught terms master/slave and defaulting to host/device where applicable.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 <!-- ABOUT THE PROJECT -->
 
 ## About The Project
@@ -84,7 +87,7 @@ checked by the PMP during the IDLE state and only pass to the crossbar if they a
 
 
 The project is split into multiple parts:
-<p align="right">(<a href="#top">back to top</a>)</p>
+
 
 #### Create readme.md:
 Main tasks in this part:
@@ -118,7 +121,8 @@ Main tasks in this part:
 * Verifying all allowed state transitions are correct
 * Verifying outputs depending on transition
 * Verifying unallowed transitions are not possible
-
+  
+<p align="right">(<a href="#top">back to top</a>)</p>
 
 
 
@@ -130,36 +134,32 @@ Main tasks in this part:
 - [ ] TODO
 - [ ] IN PROGRESS
 - [X] DONE
-<p align="right">(<a href="#top">back to top</a>)</p>
 
 #### Rework wrapper_structure and add additonal structures:
 - [X] TODO
 - [ ] IN PROGRESS
 - [ ] DONE
-<p align="right">(<a href="#top">back to top</a>)</p>
 
 #### Implementation of TL-UL Interface for CPU:
 - [ ] TODO
 - [X] IN PROGRESS
 - [ ] DONE
-<p align="right">(<a href="#top">back to top</a>)</p>
 
 #### Verifying of TL-UL Interface for CPU
 - [ ] TODO
 - [X] IN PROGRESS
 - [ ] DONE
-<p align="right">(<a href="#top">back to top</a>)</p>
 
 #### FSM implementation regarding to specification
 - [ ] TODO
 - [X] IN PROGRESS
 - [ ] DONE
-<p align="right">(<a href="#top">back to top</a>)</p>
 
 #### Verifying FSM implementation:
 - [ ] TODO
 - [X] IN PROGRESS
 - [ ] DONE
+
 <p align="right">(<a href="#top">back to top</a>)</p>
 <!-- CONTACT -->
 
