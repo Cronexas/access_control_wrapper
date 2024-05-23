@@ -93,30 +93,23 @@ The project is split into multiple parts:
 
 
 #### Implementation of TL-UL Interface for CPU:
-
 Main tasks in this part:
 * Implementation of PutFullData and PutPartialData opcode (with all active lanes)
 * Implmentation of PutPartialData opcode (without all active lanes)
 * Implementation of GET opcode
 
-#### Part2:
-Verifying the CPU-Interface
-
+#### Verifying of TL-UL Interface for CPU::
 Main tasks in this part:
 * Check if in range beviour of writting data for address-space
 * Check out of Range behviour for address-space
 * Checking GET 
 
-#### Part3:
-Implementation of the specified behviour of a TileLink-Unchached Lightweight access control wrapper for bus-hosts. 
-
+####  regarding to specification:
 Main tasks in this part:
 * Implementing FSM base contruct
 * Implementing State Transitions
 
-#### Part4:
-Verifying of the specified behviour of a TileLink-Unchached Lightweight access control wrapper for bus-hosts. 
-
+#### Verifying FSM implementation:
 Main tasks in this part:
 * Verifying all allowed state transitions are correct
 * Verifying outputs depending on transition
@@ -156,7 +149,6 @@ Main tasks in this part:
 
 <!-- Your Name - [@your_twitter](https://twitter.com/your_username) - email@example.com -->
 Dominik Schwarz & SECRET - d_schwar@rptu.de & 
-Lucas Deutschmann & Philipp Schmitz - vds_cp@eit.uni-kl.de
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
