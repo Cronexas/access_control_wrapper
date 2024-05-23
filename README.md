@@ -147,7 +147,14 @@ Dominik Schwarz & SECRET - d_schwar@rptu.de &
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
-
+[contributors-shield]: https://img.shields.io/github/contributors/TUK-EIS/VDSProject.svg?style=for-the-badge
+[contributors-url]: https://github.com/Cronexas/access_control_wrapper/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/TUK-EIS/VDSProject.svg?style=for-the-badge
+[forks-url]: https://github.com/Cronexas/access_control_wrapper/network/members
+[stars-shield]: https://img.shields.io/github/stars/TUK-EIS/VDSProject.svg?style=for-the-badge
+[stars-url]: https://github.com/Cronexas/access_control_wrapper/stargazers
+[issues-shield]: https://img.shields.io/github/issues/TUK-EIS/VDSProject.svg?style=for-the-badge
+[issues-url]: https://github.com/Cronexas/access_control_wrapper/issues
 
 <!-- ACKNOWLEDGMENTS -->
 #### Acknowledgments
