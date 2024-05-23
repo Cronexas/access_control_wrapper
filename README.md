@@ -86,6 +86,15 @@ checked by the PMP during the IDLE state and only pass to the crossbar if they a
 The project is split into multiple parts:
 <p align="right">(<a href="#top">back to top</a>)</p>
 
+#### Create readme.md:
+Main tasks in this part:
+*Add template for readme.md
+*Add project information to readme.md
+
+#### Rework wrapper_structure and add additonal structures:
+Main tasks in this part:
+*Create structure of wrapper and its units
+*Create a structure for the units
 
 #### Implementation of TL-UL Interface for CPU:
 Main tasks in this part:
@@ -116,6 +125,19 @@ Main tasks in this part:
 
 <!-- ROADMAP -->
 #### Roadmap
+
+#### Create readme.md:
+- [ ] TODO
+- [ ] IN PROGRESS
+- [X] DONE
+<p align="right">(<a href="#top">back to top</a>)</p>
+
+#### Rework wrapper_structure and add additonal structures:
+- [X] TODO
+- [ ] IN PROGRESS
+- [ ] DONE
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 #### Implementation of TL-UL Interface for CPU:
 - [ ] TODO
 - [X] IN PROGRESS
