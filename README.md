@@ -88,13 +88,13 @@ The project is split into multiple parts:
 
 #### Create readme.md:
 Main tasks in this part:
-*Add template for readme.md
-*Add project information to readme.md
+* Add template for readme.md
+* Add project information to readme.md
 
 #### Rework wrapper_structure and add additonal structures:
 Main tasks in this part:
-*Create structure of wrapper and its units
-*Create a structure for the units
+* Create structure of wrapper and its units
+* Create a structure for the units
 
 #### Implementation of TL-UL Interface for CPU:
 Main tasks in this part:
