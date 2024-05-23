@@ -62,7 +62,7 @@
   <summary>Table of Contents</summary>
   <ol>
     <li>
-      <a href="#general-information">About The Project</a>
+      <a href="#general-information">General Information</a>
     </li>
     <li>
       <a href="#about-the-project">About The Project</a>
@@ -93,7 +93,7 @@ Main tasks in this part:
 * Implmentation of PutPartialData opcode (without all active lanes)
 * Implementation of GET opcode
 
-#### Verifying of TL-UL Interface for CPU::
+#### Verifying of TL-UL Interface for CPU:
 Main tasks in this part:
 * Check if in range beviour of writting data for address-space
 * Check out of Range behviour for address-space
@@ -115,32 +115,32 @@ Main tasks in this part:
 
 
 <!-- ROADMAP -->
-## Roadmap
-#### Part-1
+#### Roadmap
+#### Implementation of TL-UL Interface for CPU:
 - [ ] TODO
 - [X] IN PROGRESS
 - [ ] DONE
 <p align="right">(<a href="#top">back to top</a>)</p>
 
-#### Part-2
+#### Verifying of TL-UL Interface for CPU
 - [ ] TODO
 - [X] IN PROGRESS
 - [ ] DONE
 <p align="right">(<a href="#top">back to top</a>)</p>
 
-#### Part-3
+#### FSM implementation regarding to specification
 - [ ] TODO
 - [X] IN PROGRESS
 - [ ] DONE
 <p align="right">(<a href="#top">back to top</a>)</p>
 
-#### Part-3
+#### Verifying FSM implementation:
 - [ ] TODO
 - [X] IN PROGRESS
 - [ ] DONE
 <p align="right">(<a href="#top">back to top</a>)</p>
 <!-- CONTACT -->
-## Contact
+#### Contact
 
 <!-- Your Name - [@your_twitter](https://twitter.com/your_username) - email@example.com -->
 Dominik Schwarz & SECRET - d_schwar@rptu.de & 
@@ -150,7 +150,7 @@ Dominik Schwarz & SECRET - d_schwar@rptu.de &
 
 
 <!-- ACKNOWLEDGMENTS -->
-## Acknowledgments
+#### Acknowledgments
 Thank you Dino for all your time ,comments and suggestions. It is a pleasure to work with you!
 
 
