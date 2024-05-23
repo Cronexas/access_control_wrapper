@@ -81,9 +81,7 @@ We are avoiding the fraught terms master/slave and defaulting to host/device whe
 <!-- ABOUT THE PROJECT -->
 
 ## About The Project
-The access control wrapper is designed with the aim of preventing third-party non-CPU master modules from violating System-on-Chip security. It includes the RISC-V Physical Memory Protection (PMP), Control Status Registers (CSR), a TileLink Uncached Lightweight (TL-UL) 
-CPU interface and an access control logic in the form of a finite state machine with two states: IDLE and BLOCK. The PMP configuration can only be written through the CPU interface and is independent of the state of the wrapper. Incoming messages from the master are 
-checked by the PMP during the IDLE state and only pass to the crossbar if they are allowed. Every illegal message gets blocked and the wrapper changes to the BLOCK state, where every message from the master is blocked, until the CPU requests a return to IDLE.
+The access control wrapper is designed with the aim of preventing third-party non-CPU host modules from violating System-on-Chip security. It includes the RISC-V Physical Memory Protection (PMP), Control Status Registers (CSR), a TileLink Uncached Lightweight (TL-UL) CPU interface and an access control logic in the form of a finite state machine with four states: IDLE, BLOCK_START, BLOCK_ERR, BLOCK_IDLE. The PMP configuration can only be written through the CPU interface and is independent of the state of the wrapper. Incoming messages from the host are checked by the PMP during the IDLE state and only pass to the crossbar if they are allowed. Every illegal message gets blocked and the wrapper changes to one of the BLOCK states, where every message from the host to device is blocked, until the CPU requests a return to IDLE und the Host has recivied a TL-UL error response. Messages from Device to Host are always passed, except for the case, when the host hasn't recieved the error-response yet.
 
 
 The project is split into multiple parts:
@@ -122,6 +120,16 @@ Main tasks in this part:
 * Verifying outputs depending on transition
 * Verifying unallowed transitions are not possible
   
+#### Wrapper Documentation:
+Main tasks in this part:
+* Create structure of wrapper and its units
+* Create a structure for the units
+
+#### Writting theoretical part:
+Main tasks in this part:
+* State of the Art SoC security. Opentitan as Root of Trust
+* Basic idea of wrapper
+
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 
@@ -160,6 +168,17 @@ Main tasks in this part:
 - [X] IN PROGRESS
 - [ ] DONE
 
+#### Wrapper Documentation:
+- [ ] TODO
+- [X] IN PROGRESS
+- [ ] DONE
+
+#### Writting theoretical part:
+- [X] TODO
+- [ ] IN PROGRESS
+- [ ] DONE
+
+      
 <p align="right">(<a href="#top">back to top</a>)</p>
 <!-- CONTACT -->
 
