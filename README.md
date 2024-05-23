@@ -124,7 +124,7 @@ Main tasks in this part:
 
 
 <!-- ROADMAP -->
-#### Roadmap
+## Roadmap
 
 #### Create readme.md:
 - [ ] TODO
@@ -162,7 +162,7 @@ Main tasks in this part:
 - [ ] DONE
 <p align="right">(<a href="#top">back to top</a>)</p>
 <!-- CONTACT -->
-#### Contact
+## Contact
 
 <!-- Your Name - [@your_twitter](https://twitter.com/your_username) - email@example.com -->
 Dominik Schwarz & SECRET - d_schwar@rptu.de & 
@@ -179,7 +179,7 @@ Dominik Schwarz & SECRET - d_schwar@rptu.de &
 [issues-url]: https://github.com/Cronexas/access_control_wrapper/issues
 
 <!-- ACKNOWLEDGMENTS -->
-#### Acknowledgments
+## Acknowledgments
 Thank you Dino for all your time ,comments and suggestions. It is a pleasure to work with you!
 
 
