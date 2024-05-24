@@ -119,6 +119,15 @@ Main tasks in this part:
 * Verifying all allowed state transitions are correct
 * Verifying outputs depending on transition
 * Verifying unallowed transitions are not possible
+
+#### Implementation of Interrupt capability regarding to opentitan:
+Main tasks in this part:
+* Implementing necessary register
+* Implementing control for interrupt
+  
+#### Verifying of Interrupt capability:
+Main tasks in this part:
+* Verifying interrupt behaviour
   
 #### Wrapper Documentation:
 Main tasks in this part:
