@@ -169,13 +169,13 @@ Main tasks in this part:
 
 #### FSM implementation regarding to specification
 - [ ] TODO
-- [X] IN PROGRESS
-- [ ] DONE
+- [ ] IN PROGRESS
+- [X] DONE
 
 #### Verifying FSM implementation:
 - [ ] TODO
-- [X] IN PROGRESS
-- [ ] DONE
+- [ ] IN PROGRESS
+- [X] DONE
 
 #### Implementation of Interrupt capability regarding to opentitan:
 - [X] TODO
