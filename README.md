@@ -177,6 +177,16 @@ Main tasks in this part:
 - [X] IN PROGRESS
 - [ ] DONE
 
+#### Implementation of Interrupt capability regarding to opentitan:
+- [X] TODO
+- [ ] IN PROGRESS
+- [ ] DONE
+  
+#### Verifying of Interrupt capability:
+- [X] TODO
+- [ ] IN PROGRESS
+- [ ] DONE
+
 #### Wrapper Documentation:
 - [ ] TODO
 - [X] IN PROGRESS
