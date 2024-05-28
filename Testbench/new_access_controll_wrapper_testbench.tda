@@ -12,11 +12,13 @@ parameter logic[1:0]		block_start = 2'b01;
 parameter logic[1:0]		block_idle = 2'b10;
 parameter logic[1:0]		block_err = 2'b11;
 parameter logic[31:0]	go_idle_addr = 32'h000003c1; //961 dec, 32'h03c1 0000
+
 //parameter enum logic {idle = 1'b0, block = 1'b1};  
 
 
 module ACW_property_suite(rst,clk,irq_q,tl_h2pmp, tl_pmp2h,tl_d2pmp,tl_pmp2d,tl_cpu2csr, tl_csr2cpu,csr_pmp_cfg,current_state,wr_en_csr, rd_data_csr, activate_cpu_err_resp_q, 
-ack_outstanding_q,pmp_req_err, err_rsp_sent_q, go_to_idle_q, go_to_idle_d, cpu_addr_rel, irq_d, tl_err_rsp_device_outstanding
+ack_outstanding_q,pmp_req_err, err_rsp_sent_q, go_to_idle_q, go_to_idle_d, cpu_addr_rel, irq_d, tl_err_rsp_device_outstanding, number_bits_a_mask, a_size_int, activate_cpu_err_resp_d,
+denied_reg_addr_q, ack_outstanding_d, denied_reg_type_q
 );
 //All IO of module access_control_wrapper.sv
 input logic 				rst;
@@ -35,13 +37,19 @@ input ibex_pkg::pmp_cfg_t		csr_pmp_cfg [PMPNumRegions];
 input logic[1:0]			current_state;
 input logic				wr_en_csr[4:0];
 input logic 				activate_cpu_err_resp_q;
+input logic 				activate_cpu_err_resp_d;
 input logic 				ack_outstanding_q;
 input logic 				pmp_req_err;
 input logic 				err_rsp_sent_q;
 input logic 				go_to_idle_q;
 input logic 				go_to_idle_d;
 input logic [31:0]			rd_data_csr[4:0];
+input logic [31:0]			denied_reg_addr_q;
 input logic [28:0]  			cpu_addr_rel;
+input int				number_bits_a_mask;
+input int				a_size_int;
+input logic 				ack_outstanding_d;
+input logic [2:0]			denied_reg_type_q;
 //{} 
 
 
@@ -131,12 +139,12 @@ input logic [28:0]  			cpu_addr_rel;
 	//Internal registers of the next state are set one CC later.
 
 	//FSM DRAWING MISTAKE: state transition idle to block irq_d =1 NOT irq_q=1
+
+	////////////////////////
+	////     CPU2CSR    ////
+	////////////////////////
+
 	property check_pmp_inputs_after_cpu_write_cfg_full;
-		//Format of address is not clear yet.
-		//First we write config in the first clock-cycle
-		//Afterwards we wait atleast 12 CLK to send next data.(total of 3 addresses)
-		//a_address [9:2] is address of register
-		// config address[28:0] matches pmp_address  address[30:2]
 		t ##0 tl_cpu2csr.a_opcode == PutFullData and
 		t ##0 tl_cpu2csr.a_address == 32'h00000000 and
 		t ##0 tl_cpu2csr.a_data == 32'b10011111000101111000100001100000 and 
@@ -152,7 +160,7 @@ input logic [28:0]  			cpu_addr_rel;
 		// Order {cfg3,cfg2,cfg1,cfg0}
 		//Check if the cfg writting works
 		t ##0 wr_en_csr[0] == 1'b1 and
-		t ##1 tl_csr2cpu.a_ready == 1'b0 and
+		t ##1 tl_csr2cpu.a_ready == 1'b1 and //Hold for 0 , clearify if GET and PUT at the same time are allowed.
 		t ##1 csr_pmp_cfg[3].lock == 1'b1 and
 		t ##1 csr_pmp_cfg[2].lock == 1'b0 and
 		t ##1 csr_pmp_cfg[1].lock == 1'b1 and
@@ -264,7 +272,7 @@ input logic [28:0]  			cpu_addr_rel;
 		// Order {cfg3,cfg2,cfg1,cfg0}
 		//Check if the cfg writting works
 		t ##0 wr_en_csr[0] == 1'b1 and
-		t ##1 tl_csr2cpu.a_ready == 1'b0 and
+		t ##1 tl_csr2cpu.a_ready == 1'b1 and // Holds for 0
 		t ##1 csr_pmp_cfg[3].lock == 1'b1 and
 		t ##1 csr_pmp_cfg[2].lock == 1'b0 and
 		t ##1 csr_pmp_cfg[1].lock == 1'b1 and
@@ -285,11 +293,6 @@ input logic [28:0]  			cpu_addr_rel;
 		t ##1 csr_pmp_cfg[2].read == 1'b1 and
 		t ##1 csr_pmp_cfg[1].read == 1'b0 and
 		t ##1 csr_pmp_cfg[0].read == 1'b0;
-		//t ##1 csr_pmp_cfg[3] == 6'b101111 and
-		//t ##1 csr_pmp_cfg[2] == 6'b010111 and
-		//t ##1 csr_pmp_cfg[1] == 6'b101000 and
-		//t ##1 csr_pmp_cfg[0] == 6'b000000 and
-		//t ##1 tl_csr2cpu.a_ready== 1'b1;
 		
 	endproperty
 
@@ -372,10 +375,9 @@ input logic [28:0]  			cpu_addr_rel;
 		t ##1 tl_cpu2csr.d_ready == 1'b1 
 		
 		implies 
-
 		t ##1 tl_csr2cpu.d_error == 1'b1 and
 		t ##1 activate_cpu_err_resp_q == 1'b1 and
-		t ##1 ack_outstanding_q == 1'b1;
+		t ##1 ack_outstanding_q == 1'b0;
 		
 	endproperty
 
@@ -390,11 +392,13 @@ input logic [28:0]  			cpu_addr_rel;
 		t ##0 tl_cpu2csr.a_size == 2'b10 and
 		t ##0 tl_cpu2csr.a_mask == 4'b1111 and
 		t ##0 tl_csr2cpu.a_ready == 1'b1 and
+		//t ##0 activate_cpu_err_resp_q == 1'b0 and
 		t ##1 tl_cpu2csr.d_ready == 1'b1
 		implies
-		t ##1 tl_csr2cpu.d_error == 1'b1 and
-		t ##1 activate_cpu_err_resp_q == 1'b1 and
-		t ##1 ack_outstanding_q == 1'b1;
+		t ##0 activate_cpu_err_resp_d == 1'b1 and
+		t ##1 tl_csr2cpu.d_error == 1'b1 and //failsttttttttttt
+		t ##1 activate_cpu_err_resp_q == 1'b1 and //holds
+		t ##1 ack_outstanding_q == 1'b0; //holds
 	endproperty
 
 
@@ -415,13 +419,12 @@ input logic [28:0]  			cpu_addr_rel;
 		t ##0 tl_cpu2csr.a_size == 2'b10 and
 		t ##0 tl_cpu2csr.a_mask == 4'b1111 and
 		t ##0 tl_csr2cpu.a_ready == 1'b1 and
-		t ##1 tl_cpu2csr.d_ready == 1'b1
+		t ##1 tl_cpu2csr.d_ready == 1'b1 
 		
 		implies 
-
 		t ##1 tl_csr2cpu.d_error == 1'b1 and
 		t ##1 activate_cpu_err_resp_q == 1'b1 and
-		t ##1 ack_outstanding_q == 1'b1;
+		t ##1 ack_outstanding_q == 1'b0;
 		
 	endproperty
 
@@ -436,15 +439,111 @@ input logic [28:0]  			cpu_addr_rel;
 		t ##0 tl_cpu2csr.a_size == 2'b10 and
 		t ##0 tl_cpu2csr.a_mask == 4'b1111 and
 		t ##0 tl_csr2cpu.a_ready == 1'b1 and
+		//t ##0 activate_cpu_err_resp_q == 1'b0 and
 		t ##1 tl_cpu2csr.d_ready == 1'b1
 		implies
-		t ##1 tl_csr2cpu.d_error == 1'b1 and
-		t ##1 activate_cpu_err_resp_q == 1'b1 and
-		t ##1 ack_outstanding_q == 1'b1;
+		t ##0 activate_cpu_err_resp_d == 1'b1 and
+		t ##1 tl_csr2cpu.d_error == 1'b1 and //failsttttttttttt
+		t ##1 activate_cpu_err_resp_q == 1'b1 and //holds
+		t ##1 ack_outstanding_q == 1'b0; //holds
+	endproperty
+	
+	////////////////////////
+	////     CSR2CPU    ////
+	////////////////////////
+	property state_get_denied_reg_addr;
+		//Holds with or without commented assertions	
+		logic [31:0] denied_reg_addr_q_content;
+		logic [7:0] host_source;
+		t ##0 set_freeze(denied_reg_addr_q_content, denied_reg_addr_q) and
+		t ##0 set_freeze(host_source, tl_cpu2csr.a_source) and
+		t ##0 tl_cpu2csr.a_valid == 1'b1 and
+		t ##0 tl_csr2cpu.a_ready == 1'b1 and
+		t ##0 tl_cpu2csr.a_opcode == Get and
+		t ##0 number_bits_a_mask == a_size_int and
+		t ##0 tl_cpu2csr.a_address == 32'h00000308 and
+		t ##1 tl_cpu2csr.d_ready == 1'b1
+		implies
+		t ##0 ack_outstanding_d == 1'b1 and //holds
+		t ##1 tl_csr2cpu.a_ready == 1'b0 and //holds
+		t ##1 tl_csr2cpu.d_data == denied_reg_addr_q_content and //holds
+		t ##1 tl_csr2cpu.d_valid == 1'b1 and //holds
+		t ##1 tl_csr2cpu.d_opcode == 3'h1 and //holds //AccessAckData = 3'h1
+		t ##1 tl_csr2cpu.d_source == host_source and //holds
+		t ##1 tl_csr2cpu.d_size == 2'b10 and
+		t ##1 tl_csr2cpu.d_error == 1'b0;
 	endproperty
 	
 
-	//FSM properties
+	property state_get_denied_reg_type;
+		//Holds with or without commented assertions
+		logic [2:0] denied_reg_type_q_content;
+		logic [7:0] host_source;
+		t ##0 set_freeze(denied_reg_type_q_content, denied_reg_type_q) and
+		t ##0 set_freeze(host_source, tl_cpu2csr.a_source) and
+		t ##0 tl_cpu2csr.a_valid == 1'b1 and
+		t ##0 tl_csr2cpu.a_ready == 1'b1 and
+		t ##0 tl_cpu2csr.a_opcode == Get and
+		t ##0 number_bits_a_mask == a_size_int and
+		t ##0 tl_cpu2csr.a_address == 32'h0000030C and
+		t ##1 tl_cpu2csr.d_ready == 1'b1
+		implies
+		t ##0 ack_outstanding_d == 1'b1 and //holds
+		t ##1 tl_csr2cpu.a_ready == 1'b0 and //holds
+		t ##1 tl_csr2cpu.d_data[2:0] == denied_reg_type_q_content and //holds
+		t ##1 tl_csr2cpu.d_data[31:3] == 29'b0 and
+		t ##1 tl_csr2cpu.d_valid == 1'b1 and //holds
+		t ##1 tl_csr2cpu.d_opcode == 3'h1 and //holds //AccessAckData = 3'h1
+		t ##1 tl_csr2cpu.d_source == host_source and //holds
+		t ##1 tl_csr2cpu.d_size == 2'b10 and
+		t ##1 tl_csr2cpu.d_error == 1'b0;
+	endproperty
+
+	property state_get_current_state;
+		logic [1:0] current_state_content;
+		logic [7:0] host_source;
+		t ##0 set_freeze(current_state_content, current_state) and
+		t ##0 set_freeze(host_source, tl_cpu2csr.a_source) and
+		t ##0 tl_cpu2csr.a_valid == 1'b1 and
+		t ##0 tl_csr2cpu.a_ready == 1'b1 and
+		t ##0 tl_cpu2csr.a_opcode == Get and
+		t ##0 number_bits_a_mask == a_size_int and
+		t ##0 tl_cpu2csr.a_address == 32'h00000310 and
+		t ##1 tl_cpu2csr.d_ready == 1'b1
+		implies
+		t ##0 ack_outstanding_d == 1'b1 and //holds
+		t ##1 tl_csr2cpu.a_ready == 1'b0 and //holds
+		t ##1 tl_csr2cpu.d_data[1:0] == current_state_content and //holds
+		t ##1 tl_csr2cpu.d_data[31:0] == 30'b0 and
+		t ##1 tl_csr2cpu.d_valid == 1'b1 and //holds
+		t ##1 tl_csr2cpu.d_opcode == 3'h1 and //holds //AccessAckData = 3'h1
+		t ##1 tl_csr2cpu.d_source == host_source and //holds
+		t ##1 tl_csr2cpu.d_size == 2'b10 and
+		t ##1 tl_csr2cpu.d_error == 1'b0;
+	endproperty
+
+	property state_get_pmp_config;
+		//Holds with or without commented assertions
+		t ##0 current_state == idle and
+		t ##0 pmp_req_err == 1'b0 //and
+		implies
+		t ##0 tl_pmp2d == tl_h2pmp and
+		t ##0 tl_pmp2h == tl_d2pmp and
+		t ##1 current_state == idle;
+	endproperty
+
+	property state_get_pmp_address_1;
+		//Holds with or without commented assertions
+		t ##0 current_state == idle and
+		t ##0 pmp_req_err == 1'b0 //and
+		implies
+		t ##0 tl_pmp2d == tl_h2pmp and
+		t ##0 tl_pmp2h == tl_d2pmp and
+		t ##1 current_state == idle;
+	endproperty
+	////////////////////////
+	//    FSM properties   /
+	////////////////////////
 	property state_transition_1_to_1;
 		//Holds with or without commented assertions
 		t ##0 current_state == idle and
@@ -616,12 +715,43 @@ input logic [28:0]  			cpu_addr_rel;
 		//t ##1 go_to_idle_q == 1'b0;
 	endproperty
 	
-	//Here we will check 
+	//Here we will check forbidden state transitions
+	property state_transition_1_to_3_unallowed;
+		t ##0 current_state == idle
+		implies 
+		t ##1 current_state !== block_idle;
+	endproperty
 
-	//Here we check the State machine
+	property state_transition_1_to_4_unallowed;
+		t ##0 current_state == idle
+		implies 
+		t ##1 current_state != block_err;
+	endproperty
 
-	//Let's talk about some changes.
-	//We might extend the FSM a bit, so we have a more common model instead of only a TUUL specific
+	property state_transition_3_to_2_unallowed;
+		t ##0 current_state == block_idle
+		implies 
+		t ##1 current_state != block_start;
+	endproperty
+
+	property state_transition_3_to_4_unallowed;
+		t ##0 current_state == block_idle
+		implies 
+		t ##1 current_state != block_err;
+	endproperty
+
+	property state_transition_4_to_2_unallowed;
+		t ##0 current_state == block_err
+		implies 
+		t ##1 current_state != block_start;
+	endproperty
+	property state_transition_4_to_3_unallowed;
+		t ##0 current_state == block_err
+		implies 
+		t ##1 current_state != block_idle;
+	endproperty	
+//Let's talk about some changes.
+//We might extend the FSM a bit, so we have a more common model instead of only a TUUL specific
 a_check_pmp_inputs_after_cpu_write_cfg_full:  				assert property (@(posedge clk) disable iff (rst==0) check_pmp_inputs_after_cpu_write_cfg_full);
 a_check_pmp_inputs_after_cpu_write_address0_full:  			assert property (@(posedge clk) disable iff (rst==0) check_pmp_inputs_after_cpu_write_address0_full);
 a_check_pmp_inputs_after_cpu_write_address1_full:  			assert property (@(posedge clk) disable iff (rst==0) check_pmp_inputs_after_cpu_write_address1_full);
@@ -648,6 +778,17 @@ a_state_transition_3_to_3:						assert property (@(posedge clk) disable iff (rst
 a_state_transition_3_to_1:						assert property (@(posedge clk) disable iff (rst==0) state_transition_3_to_1);
 a_state_transition_4_to_4:						assert property (@(posedge clk) disable iff (rst==0) state_transition_4_to_4);
 a_state_transition_4_to_1:						assert property (@(posedge clk) disable iff (rst==0) state_transition_4_to_1);
+//forbidden state transitions
+a_state_transition_1_to_3_unallowed:						assert property (@(posedge clk) disable iff (rst==0) state_transition_1_to_3_unallowed);
+a_state_transition_1_to_4_unallowed:						assert property (@(posedge clk) disable iff (rst==0) state_transition_1_to_4_unallowed);
+a_state_transition_3_to_2_unallowed:						assert property (@(posedge clk) disable iff (rst==0) state_transition_3_to_2_unallowed);
+a_state_transition_3_to_4_unallowed:						assert property (@(posedge clk) disable iff (rst==0) state_transition_3_to_4_unallowed);
+a_state_transition_4_to_2_unallowed:						assert property (@(posedge clk) disable iff (rst==0) state_transition_3_to_2_unallowed);
+a_state_transition_4_to_3_unallowed:						assert property (@(posedge clk) disable iff (rst==0) state_transition_3_to_4_unallowed);
+//csr2cpu interactions (TileLink GET)
+a_state_get_denied_reg_addr:							assert property (@(posedge clk) disable iff (rst==0) state_get_denied_reg_addr);
+a_state_get_denied_reg_type:							assert property (@(posedge clk) disable iff (rst==0) state_get_denied_reg_type);
+a_state_get_current_state:							assert property (@(posedge clk) disable iff (rst==0) state_get_current_state);
 
 `end_tda
 

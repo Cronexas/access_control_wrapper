@@ -18,21 +18,19 @@ output tlul_pkg::tl_h2d_t	tl_pmp2d = '0,               	//send message to device
 input  tlul_pkg::tl_h2d_t      	tl_cpu2csr,              		//cpu writes the cfg and address register, seperate interface for security
 output tlul_pkg::tl_d2h_t     	tl_csr2cpu = '0             	//wrapper send denied address and opcode to cpu  
   );
-//TileLink UL identifier for writting PMP config
-parameter bit 			TL_UL_PMP_CFG = 2'b11;
 
-  //PMP parameters
+//PMP parameters
 parameter int unsigned          PMPGranularity = 0;    
 parameter int unsigned          PMPNumChan = 1;
 parameter int unsigned          PMPNumRegions = 4;     		//n+(n/4) registers for n regions, max is 192!->192*5 (4 Bytes each address + 1Byte config)
 parameter int unsigned		NumberConfigEntries =  $ceil(PMPNumRegions/4);
 parameter int unsigned		TotalIbexCSR = PMPNumRegions + NumberConfigEntries;
-parameter int unsigned 		max_pmp_related_addr = 960;
-parameter int unsigned		max_bytes_addressable = 1024;
-parameter int unsigned 		go_idle_addr = 961;
-parameter int unsigned 		return_denied_reg_addr = 962;
-parameter int unsigned 		return_denied_reg_type = 963;
-parameter int unsigned 		return_current_state = 964;
+parameter int unsigned 		max_pmp_related_addr = 959;// 0 to 959 bytes->960 Bytes -> 192 32 Bit Registers (1x cfg, 4x address)
+parameter int unsigned		max_bytes_addressable = 255; //1024 addressable bytes 32 bit each addressable. We don't care about byte addressable (1:0) but we implemented it
+parameter int unsigned 		go_idle_addr = 193;
+parameter int unsigned 		return_denied_reg_addr = 194;
+parameter int unsigned 		return_denied_reg_type = 195;
+parameter int unsigned 		return_current_state = 196;
 tlul_pkg::tl_d2h_t              tl_err_rsp_device_outstanding;
 tlul_pkg::tl_d2h_t              tl_err_rsp_device_outstanding_q; 
 tlul_pkg::tl_d2h_t              tl_err_rsp_device_outstanding_d;   
@@ -218,12 +216,11 @@ generate
 endgenerate
 */
  always_comb begin 
-	tl_csr2cpu.a_ready = !ack_outstanding_q;
+	tl_csr2cpu.a_ready = !ack_outstanding_q & !activate_cpu_err_resp_q;
 	//if (!ack_outstanding_q) begin
 	
 	//ack_outstanding_d = 1'b0;
-	if (tl_cpu2csr.a_valid && tl_csr2cpu.a_ready) begin                    
-		ack_outstanding_d = 1'b1;   
+	if (tl_cpu2csr.a_valid && tl_csr2cpu.a_ready) begin                       
 		source_id_d = tl_cpu2csr.a_source;
 		//cpu address relative to base address of 
 		cpu_addr_rel = tl_cpu2csr.a_address[28:0];
@@ -245,11 +242,13 @@ endgenerate
 				wr_data_csr[cpu_addr_reg_abs] = tl_cpu2csr.a_data;
 				wr_en_csr[cpu_addr_reg_abs] = 1'b1;
 				go_to_idle_d = 1'b0;
+				ack_outstanding_d = 1'b1;
 			end else if ( cpu_addr_reg_abs < max_bytes_addressable ) begin
-					case (cpu_addr_rel)
+					case (cpu_addr_reg_abs)
 					
 					go_idle_addr :     begin                       			//addr 0, 4 cfg registers
 											go_to_idle_d = 1'b1;
+											ack_outstanding_d = 1'b1;
 										end
 					default: 				begin
 											//tl_csr2cpu_d = tl_err_rsp_cpu_outstanding;
@@ -283,11 +282,13 @@ endgenerate
 				wr_data_csr[cpu_addr_reg_abs] = {wr_data_csr_byte[3],wr_data_csr_byte[2],wr_data_csr_byte[1],wr_data_csr_byte[0]};
 				wr_en_csr[cpu_addr_reg_abs] = 1'b1;
 				go_to_idle_d = 1'b0;
+				ack_outstanding_d = 1'b1;
 			end else if ( cpu_addr_reg_abs < max_bytes_addressable )begin
 				case (cpu_addr_reg_abs)
 					
 					go_idle_addr :     begin                       			//addr 0, 4 cfg registers
 											go_to_idle_d = 1'b1;
+											ack_outstanding_d = 1'b1;
 										end
 					default: 				begin
 											//tl_csr2cpu_d = tl_err_rsp_cpu_outstanding;
@@ -308,22 +309,26 @@ endgenerate
 			ack_opcode_d = AccessAckData;
 			if ( cpu_addr_reg_abs <= ( TotalIbexCSR - 1 ) ) begin
 				tl_csr2cpu_d.d_data = rd_data_csr[cpu_addr_reg_abs];
+				ack_outstanding_d = 1'b1;
 			end else if ( cpu_addr_reg_abs < max_bytes_addressable ) begin
 				case (cpu_addr_reg_abs)
 				//29'b00000000000000000000000010100 :     begin                       			//addr 0, 4 cfg registers
 				return_denied_reg_addr : begin
 										tl_csr2cpu_d.d_data = denied_reg_addr_q;
+										ack_outstanding_d = 1'b1;
 									end
 				//29'b00000000000000000000000011000 :     begin                       			//addr 0, 4 cfg registers
 				return_denied_reg_type : begin
 										tl_csr2cpu_d.d_data[2:0] = denied_reg_type_q;
 										tl_csr2cpu_d.d_data[31:3] = '{29{1'b0}};
+										ack_outstanding_d = 1'b1;
 									end
 				//29'b00000000000000000000000011001 :     begin                       			//addr 0, 4 cfg registers
 				return_current_state : begin
 										//tl_csr2cpu.d_data = {'{31{1'b0}} , current_state };
-										tl_csr2cpu_d.d_data[0] = current_state_q;
-										tl_csr2cpu_d.d_data[31:1] = '{31{1'b0}};
+										tl_csr2cpu_d.d_data[1:0] = current_state;
+										tl_csr2cpu_d.d_data[31:2] = '{30{1'b0}};
+										ack_outstanding_d = 1'b1;
 									end
 				default: 				begin
 										//tl_csr2cpu = tl_err_rsp_cpu_outstanding;
@@ -349,7 +354,7 @@ endgenerate
 		end
 		number_bits_a_mask = 0;
 	end
-	if (tl_cpu2csr.d_ready && ack_outstanding_q && activate_cpu_err_resp_q) begin
+	if (tl_cpu2csr.d_ready && activate_cpu_err_resp_q) begin
 		tl_csr2cpu.d_data = tl_err_rsp_cpu_outstanding.d_data;
 		tl_csr2cpu.d_opcode = tl_err_rsp_cpu_outstanding.d_opcode;
 		tl_csr2cpu.d_source = tl_err_rsp_cpu_outstanding.d_source;
@@ -361,15 +366,19 @@ endgenerate
 		tl_csr2cpu.d_valid = 1'b1;
 		activate_cpu_err_resp_d = 1'b0;
 		ack_outstanding_d = 1'b0;
-	end else if (tl_cpu2csr.d_ready && ack_outstanding_q && !activate_cpu_err_resp_q) begin                     
+	end else if (tl_cpu2csr.d_ready && ack_outstanding_q) begin                     
 		tl_csr2cpu.d_source = source_id_q;
 		tl_csr2cpu.d_opcode = ack_opcode_q;
 		tl_csr2cpu.d_valid = 1'b1;
 		tl_csr2cpu.d_data = tl_csr2cpu_q.d_data;
+		tl_csr2cpu.d_size = 2'b10;
+		tl_csr2cpu.d_error = 1'b0;
 		ack_outstanding_d = 1'b0;
-	//end else if (!ack_outstanding_q) begin
+	end else if (!tl_cpu2csr.d_ready && ack_outstanding_q) begin
+		ack_outstanding_d = ack_outstanding_q;
 	end else begin
 		tl_csr2cpu.d_valid = 1'b0;
+		
 		//go_to_idle_d = 1'b0;
 	/*end else begin
 		ack_outstanding_d = ack_outstanding_q;*/
