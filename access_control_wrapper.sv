@@ -386,8 +386,8 @@ endgenerate
 end 
 
  
-  logic denied_addr_read_d, denied_addr_read_q;
-  logic denied_req_type_read_d, denied_req_type_read_q;
+logic denied_addr_read_d, denied_addr_read_q;
+logic denied_req_type_read_d, denied_req_type_read_q;
 
   ////////////////////////////////  --flip flop internal signals
   
