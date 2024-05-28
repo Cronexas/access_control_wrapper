@@ -27,10 +27,10 @@ parameter int unsigned		NumberConfigEntries =  $ceil(PMPNumRegions/4);
 parameter int unsigned		TotalIbexCSR = PMPNumRegions + NumberConfigEntries;
 parameter int unsigned 		max_pmp_related_addr = 959;// 0 to 959 bytes->960 Bytes -> 192 32 Bit Registers (1x cfg, 4x address)
 parameter int unsigned		max_bytes_addressable = 255; //1024 addressable bytes 32 bit each addressable. We don't care about byte addressable (1:0) but we implemented it
-parameter int unsigned 		go_idle_addr = 193;
-parameter int unsigned 		return_denied_reg_addr = 194;
-parameter int unsigned 		return_denied_reg_type = 195;
-parameter int unsigned 		return_current_state = 196;
+parameter int unsigned 		go_idle_addr = 240;
+parameter int unsigned 		return_denied_reg_addr = 241;
+parameter int unsigned 		return_denied_reg_type = 242;
+parameter int unsigned 		return_current_state = 243;
 tlul_pkg::tl_d2h_t              tl_err_rsp_device_outstanding;
 tlul_pkg::tl_d2h_t              tl_err_rsp_device_outstanding_q; 
 tlul_pkg::tl_d2h_t              tl_err_rsp_device_outstanding_d;   
@@ -39,63 +39,62 @@ tlul_pkg::tl_d2h_t              tl_err_rsp_cpu_outstanding;
 tlul_pkg::tl_d2h_t      	tl_csr2cpu_q;
 tlul_pkg::tl_d2h_t      	tl_csr2cpu_d;  		
   
-ibex_pkg::pmp_mseccfg_t           csr_pmp_mseccfg = 1'b0;
-ibex_pkg::priv_lvl_e              priv_mode [PMPNumChan] = {2'b00}; 	//user mode
+ibex_pkg::pmp_mseccfg_t         csr_pmp_mseccfg = 1'b0;
+ibex_pkg::priv_lvl_e            priv_mode [PMPNumChan] = {2'b00}; 	//user mode
 
 //PMP i/o signals
-logic [33:0]             	        pmp_req_addr [PMPNumChan];     
-ibex_pkg::pmp_req_e      	        pmp_req_type [PMPNumChan];
-logic                    	        pmp_req_err  [PMPNumChan];
-logic                    	        pmp_reg_err_d  [PMPNumChan];
-logic                    	        pmp_reg_err_q  [PMPNumChan];  
+logic [33:0]             	pmp_req_addr [PMPNumChan];     
+ibex_pkg::pmp_req_e  		pmp_req_type [PMPNumChan];
+logic                    	pmp_req_err  [PMPNumChan];
+logic                    	pmp_reg_err_d  [PMPNumChan];
+logic                    	pmp_reg_err_q  [PMPNumChan];  
 //PMP cfg signals
-ibex_pkg::pmp_cfg_t      	        csr_pmp_cfg   [PMPNumRegions];
-logic [33:0]            	        csr_pmp_addr  [PMPNumRegions];
+ibex_pkg::pmp_cfg_t      	csr_pmp_cfg   [PMPNumRegions];
+logic [33:0]            	csr_pmp_addr  [PMPNumRegions];
 //size identifier of TL-UL address 
-int				    	number_bits_a_mask = 0;
-int				    	a_size_int;
-int					a_size_shift_value;
+int				number_bits_a_mask = 0;
+int				a_size_int;
+int				a_size_shift_value;
 //Bytewiseaddressable pmp
 logic[2:0]			cpu_a_size;
 //Register signals
-logic [31:0]                      wr_data_csr[4:0];         		//csr signals
+logic [31:0]                    wr_data_csr[4:0];         		//csr signals
 logic [31:0]			wr_data_csr_buffer;
 logic [7:0]			wr_data_csr_byte[3:0];
-//logic                             wr_en_csr[4:0] = ;
-logic                             wr_en_csr[4:0] = {1'b0, 1'b0, 1'b0, 1'b0, 1'b0};
-logic [31:0]                      rd_data_csr[4:0];
+logic                           wr_en_csr[4:0] = {1'b0, 1'b0, 1'b0, 1'b0, 1'b0};
+logic [31:0]                    rd_data_csr[4:0];
 logic [31:0]			rd_data_csr_buffer;
 logic [7:0]			rd_data_csr_byte[3:0];      
-logic                             rd_error_csr[4:0];
+logic                           rd_error_csr[4:0];
 logic				activate_cpu_err_resp_d = 1'b0;
 logic				activate_cpu_err_resp_q;
 logic [7:0]			a_data_split[3:0];   
 logic [7:0]			d_data_split[3:0];   
-logic [28:0]                       cpu_addr_rel;
+logic [28:0]                    cpu_addr_rel;
 int 				constant_one = 1;
 int unsigned			cpu_addr_reg_abs;
-logic                             irq_d = 1'b0;
-logic[1:0]				current_state_q;
-logic 		            go_to_idle_d = 1'b0;
-logic 			    go_to_idle_q;
+logic                           irq_d = 1'b0;
+logic[1:0]			current_state_q;
+logic 		            	go_to_idle_d = 1'b0;
+logic 			    	go_to_idle_q;
   
-logic                             err_rsp_sent_d = 1'b0;
-logic                             err_rsp_sent_q;
+logic                           err_rsp_sent_d = 1'b0;
+logic                           err_rsp_sent_q;
 
-logic [7:0]                       source_id_d;
-logic [7:0]                       source_id_q;  
+logic [7:0]                     source_id_d;
+logic [7:0]                     source_id_q;  
 
-logic [31:0]                      denied_reg_addr_d = 0;
-logic [31:0]                      denied_reg_addr_q;
+logic [31:0]                    denied_reg_addr_d = 0;
+logic [31:0]                    denied_reg_addr_q;
 
-logic [2:0]                       denied_reg_type_d = 0;    
-logic [2:0]                       denied_reg_type_q;
+logic [2:0]                     denied_reg_type_d = 0;    
+logic [2:0]                     denied_reg_type_q;
   
-logic                             ack_outstanding_d;      
-logic                             ack_outstanding_q;
+logic                           ack_outstanding_d;      
+logic                           ack_outstanding_q;
   
-tl_d_op_e                         ack_opcode_d;
-tl_d_op_e                         ack_opcode_q;
+tl_d_op_e                       ack_opcode_d;
+tl_d_op_e                       ack_opcode_q;
    
   //////////////////////////////// --instantiations
 for (genvar i= 0;i<=4;i++) begin : gen_pmp_csr
@@ -476,30 +475,6 @@ end
 				end  
 			end
 	      end                                                   
-	//end                                                   
-      /*
-      block :       begin
-		      next_state = block;	 
-                      tl_pmp2h.a_ready = 1'b0;						
-                      tl_pmp2d.d_ready = 1'b0;	
-                      err_rsp_sent_d = err_rsp_sent_q;				                    
-                      if (tl_h2pmp.d_ready & !err_rsp_sent_q) begin			
-				tl_pmp2h = tl_err_rsp_device_outstanding;
-				//tl_pmp2h.a_ready = 1'b0;
-				err_rsp_sent_d = 1'b1;		
-                      end else if (err_rsp_sent_q) begin        				              
-				tl_pmp2d.d_ready = tl_h2pmp.d_ready;
-				tl_pmp2h = tl_d2pmp;
-				//if (go_to_idle_q & denied_addr_read_q & denied_req_type_read_q) begin
-				if (go_to_idle_q & denied_addr_read_q & denied_req_type_read_q) begin
-					next_state = idle;
-					err_rsp_sent_d = 1'b0;
-					go_to_idle_d = 1'b0;  
-					irq_d = 1'b0;   
-				end 
-		      end  
-                    end*/
-
 	//opentitan err rsp unit doesn't fullfil requirements. Therefor rewritting it.
 	block_start:
 		begin
