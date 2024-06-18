@@ -1,0 +1,89 @@
+/* Always defined template
+property _always_defined;
+	 == 1'b1 or
+	 == 1'b0
+endproperty	
+*/
+
+//Immidiate Assertions for all signals used internally as conditions or inputs passed to registers
+property INTR_STATE_always_defined;
+	(INTR_STATE_d == 1'b1 or
+	INTR_STATE_d == 1'b0 ) and
+	(INTR_STATE_q == 1'b1 or
+	INTR_STATE_q == 1'b0 )
+endproperty
+property INTR_ENABLE_always_defined;
+	(INTR_ENABLE_d == 1'b1 or
+	INTR_ENABLE_d == 1'b0) and
+	(INTR_ENABLE_q == 1'b1 or
+	INTR_ENABLE_q == 1'b0) 
+endproperty
+property INTR_TEST_always_defined;
+	(INTR_TEST_d == 1'b1 or
+	INTR_TEST_d == 1'b0) and
+	(INTR_TEST_q == 1'b1 or
+	INTR_TEST_q == 1'b0)
+endproperty
+property irq_always_defined;
+	(irq_q == 1'b1 or
+	irq_q == 1'b0) and
+	(irq_d == 1'b1 or
+	irq_d == 1'b0)
+endproperty
+property tl_csr2cpu_valid_always_defined;
+	tl_csr2cpu.d_valid == 1'b1 or
+	tl_csr2cpu.d_valid == 1'b0
+endproperty
+property tl_csr2cpu_ready_always_defined;
+	tl_csr2cpu.a_ready == 1'b1 or
+	tl_csr2cpu.a_ready == 1'b0
+endproperty
+property go_to_idle_always_defined;
+	(go_to_idle_d == 1'b1 or
+	go_to_idle_d == 1'b0) and
+	(go_to_idle_q == 1'b1 or
+	go_to_idle_q == 1'b0)
+endproperty
+property ack_outstanding_always_defined;
+	 (ack_outstanding_d== 1'b1 or
+	 ack_outstanding_d== 1'b0) and
+	(ack_outstanding_q== 1'b1 or
+	 ack_outstanding_q== 1'b0)
+endproperty	
+property activate_cpu_err_resp_always_defined;
+	 (activate_cpu_err_resp_d == 1'b1 or
+	 activate_cpu_err_resp_d == 1'b0) and
+	(activate_cpu_err_resp_q == 1'b1 or
+	 activate_cpu_err_resp_q == 1'b0)
+endproperty	
+property wr_en_csr_always_defined;
+	 (wr_en_csr[0] == 1'b1 or
+	 wr_en_csr[0] == 1'b0) and
+	(wr_en_csr[1] == 1'b1 or
+	 wr_en_csr[1] == 1'b0) and
+	(wr_en_csr[2] == 1'b1 or
+	 wr_en_csr[2] == 1'b0) and
+	(wr_en_csr[3] == 1'b1 or
+	 wr_en_csr[3] == 1'b0) and
+	(wr_en_csr[4] == 1'b1 or
+	 wr_en_csr[4] == 1'b0)
+endproperty
+
+	
+	
+a_INTR_STATE_always_defined:							assert property (@(posedge clk) disable iff (rst==0)  INTR_STATE_always_defined);
+a_INTR_ENABLE_always_defined:							assert property (@(posedge clk) disable iff (rst==0)  INTR_ENABLE_always_defined);
+a_INTR_TEST_always_defined:							assert property (@(posedge clk) disable iff (rst==0)  INTR_TEST_always_defined);
+a_irq_always_defined:								assert property (@(posedge clk) disable iff (rst==0)  irq_always_defined);
+a_tl_csr2cpu_valid_always_defined:						assert property (@(posedge clk) disable iff (rst==0)  tl_csr2cpu_valid_always_defined);
+a_tl_csr2cpu_ready_always_defined:						assert property (@(posedge clk) disable iff (rst==0)  tl_csr2cpu_ready_always_defined);
+a_go_to_idle_always_defined:							assert property (@(posedge clk) disable iff (rst==0)  go_to_idle_always_defined);
+a_ack_outstanding_always_defined:						assert property (@(posedge clk) disable iff (rst==0)  ack_outstanding_always_defined);
+a_activate_cpu_err_resp_always_defined:						assert property (@(posedge clk) disable iff (rst==0)  activate_cpu_err_resp_always_defined);
+a_wr_en_csr_always_defined:							assert property (@(posedge clk) disable iff (rst==0)  wr_en_csr_always_defined);
+//a_:							assert property (@(posedge clk) disable iff (rst==0)  );
+
+
+
+
+

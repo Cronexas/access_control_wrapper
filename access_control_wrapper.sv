@@ -2,22 +2,23 @@
 
 import tlul_pkg::*;
 import ibex_pkg::*;
+import access_control_wrapper_reg_pkg::*;
 //Rename to fit Filename and Modulename
 module access_control_wrapper(
 
-input logic                    	rst,
-input logic                    	clk,
-output logic                   	irq_q,
+	input logic                    	rst,
+	input logic                    	clk,
+	output logic                   	irq_q,
  
-input  tlul_pkg::tl_h2d_t  	tl_h2pmp,               		//TLUL message untrusted master to wrapper (pmp)
-output tlul_pkg::tl_d2h_t       tl_pmp2h = '0,               	//error response message to untrusted master if permission denied
+	input  tlul_pkg::tl_h2d_t  	tl_h2pmp,               		//TLUL message untrusted master to wrapper (pmp)
+	output tlul_pkg::tl_d2h_t       tl_pmp2h = '0,               	//error response message to untrusted master if permission denied
           
-input  tlul_pkg::tl_d2h_t	tl_d2pmp,                 		//incoming message from device to pmp, gets relayed without change
-output tlul_pkg::tl_h2d_t	tl_pmp2d = '0,               	//send message to device, if permission granted by pmp
+	input  tlul_pkg::tl_d2h_t	tl_d2pmp,                 		//incoming message from device to pmp, gets relayed without change
+	output tlul_pkg::tl_h2d_t	tl_pmp2d = '0,               	//send message to device, if permission granted by pmp
   
-input  tlul_pkg::tl_h2d_t      	tl_cpu2csr,              		//cpu writes the cfg and address register, seperate interface for security
-output tlul_pkg::tl_d2h_t     	tl_csr2cpu = '0             	//wrapper send denied address and opcode to cpu  
-  );
+	input  tlul_pkg::tl_h2d_t      	tl_cpu2csr,              		//cpu writes the cfg and address register, seperate interface for security
+	output tlul_pkg::tl_d2h_t     	tl_csr2cpu = '0             	//wrapper send denied address and opcode to cpu  
+);
 
 //PMP parameters
 parameter int unsigned          PMPGranularity = 0;    
@@ -31,6 +32,9 @@ parameter int unsigned 		go_idle_addr = 240;
 parameter int unsigned 		return_denied_reg_addr = 241;
 parameter int unsigned 		return_denied_reg_type = 242;
 parameter int unsigned 		return_current_state = 243;
+parameter int unsigned 		INTR_STATE_address = 244;
+parameter int unsigned		INTR_ENABLE_address = 245;
+parameter int unsigned		INTR_TEST_address = 246;
 tlul_pkg::tl_d2h_t              tl_err_rsp_device_outstanding;
 tlul_pkg::tl_d2h_t              tl_err_rsp_device_outstanding_q; 
 tlul_pkg::tl_d2h_t              tl_err_rsp_device_outstanding_d;   
@@ -38,7 +42,9 @@ tlul_pkg::tl_d2h_t              tl_err_rsp_cpu_outstanding;
 
 tlul_pkg::tl_d2h_t      	tl_csr2cpu_q;
 tlul_pkg::tl_d2h_t      	tl_csr2cpu_d;  		
-  
+tlul_pkg::tl_h2d_t		tl_cpu2csr_d;
+tlul_pkg::tl_h2d_t		tl_cpu2csr_q;
+
 ibex_pkg::pmp_mseccfg_t         csr_pmp_mseccfg = 1'b0;
 ibex_pkg::priv_lvl_e            priv_mode [PMPNumChan] = {2'b00}; 	//user mode
 
@@ -92,9 +98,34 @@ logic [2:0]                     denied_reg_type_q;
   
 logic                           ack_outstanding_d;      
 logic                           ack_outstanding_q;
+logic				intr_from_prim_hw_intr;
+
+logic 				INTR_STATE_d = 1'b0;
+logic 				INTR_ENABLE_d= 1'b0;
+logic 				INTR_TEST_d= 1'b0;
+
+logic 				INTR_STATE_q= 1'b0;
+logic 				INTR_ENABLE_q= 1'b0;
+logic 				INTR_TEST_q= 1'b0;
   
+logic				INTR_STATE_we= 1'b0;
+logic				INTR_ENABLE_we= 1'b0;
+logic				INTR_TEST_we= 1'b0;		
+
+logic				INTR_STATE_we_d= 1'b0;
+logic				INTR_ENABLE_we_d= 1'b0;
+logic				INTR_TEST_we_d= 1'b0;
+
+logic				INTR_STATE_we_q= 1'b0;
+logic				INTR_ENABLE_we_q= 1'b0;
+logic				INTR_TEST_we_q= 1'b0;
+
 tl_d_op_e                       ack_opcode_d;
 tl_d_op_e                       ack_opcode_q;
+
+//Interrupt-Interface
+access_control_wrapper_reg2hw_t reg2hw;
+access_control_wrapper_hw2reg_t hw2reg;
    
   //////////////////////////////// --instantiations
 for (genvar i= 0;i<=4;i++) begin : gen_pmp_csr
@@ -137,11 +168,11 @@ end
     );  
    
 //Implement later as Arrays. Recall them.
-  tlul_err_resp err_resp_wrapper (
-    .clk_i(clk),
-    .rst_ni(rst),
-    .tl_h_i(tl_h2pmp),
-    .tl_h_o(tl_err_rsp_device_outstanding)
+tlul_err_resp err_resp_wrapper (
+	.clk_i(clk),
+	.rst_ni(rst),
+	.tl_h_i(tl_h2pmp),
+	.tl_h_o(tl_err_rsp_device_outstanding)
 );
 tlul_err_resp cpu_error_response (
 	.clk_i(clk),
@@ -214,12 +245,19 @@ generate
 	end
 endgenerate
 */
- always_comb begin 
+ always_comb begin
+	irq_q = INTR_STATE_q & INTR_ENABLE_q;
 	tl_csr2cpu.a_ready = !ack_outstanding_q & !activate_cpu_err_resp_q;
 	//if (!ack_outstanding_q) begin
-	
-	//ack_outstanding_d = 1'b0;
-	if (tl_cpu2csr.a_valid && tl_csr2cpu.a_ready) begin                       
+	tl_csr2cpu.d_valid = 1'b0;
+	ack_outstanding_d = 1'b0;
+	INTR_ENABLE_we_d = 1'b0;
+	INTR_STATE_we_d = 1'b0;
+	INTR_TEST_we_d = 1'b0;
+	go_to_idle_d = 1'b0;
+	activate_cpu_err_resp_d = 1'b0;
+	if (tl_cpu2csr.a_valid && tl_csr2cpu.a_ready) begin
+		tl_cpu2csr_d = tl_cpu2csr;
 		source_id_d = tl_cpu2csr.a_source;
 		//cpu address relative to base address of 
 		cpu_addr_rel = tl_cpu2csr.a_address[28:0];
@@ -227,7 +265,7 @@ endgenerate
 		number_bits_a_mask = $countones(tl_cpu2csr.a_mask);
 		//absolute address in ibex csr it's byte addressable, but we direct addressing of bytes is not supported. therefor using masking bits and PartialData
 		//cpu_addr_reg_abs = '{'{24{1'b0}},tl_cpu2csr.a_address[9:2]};
-		cpu_addr_reg_abs = {24'b0,tl_cpu2csr.a_address[9:2]};
+		cpu_addr_reg_abs = {2'b0,tl_cpu2csr.a_address[31:2]};
 		a_size_shift_value[31:2] = '{30{1'b0}};
 		a_size_shift_value[1:0]= tl_cpu2csr.a_size[1:0];
 		a_size_int  = constant_one << a_size_shift_value;
@@ -240,26 +278,35 @@ endgenerate
 			if ( cpu_addr_reg_abs <= ( TotalIbexCSR - 1 ) ) begin
 				wr_data_csr[cpu_addr_reg_abs] = tl_cpu2csr.a_data;
 				wr_en_csr[cpu_addr_reg_abs] = 1'b1;
-				go_to_idle_d = 1'b0;
 				ack_outstanding_d = 1'b1;
 			end else if ( cpu_addr_reg_abs < max_bytes_addressable ) begin
 					case (cpu_addr_reg_abs)
 					
-					go_idle_addr :     begin                       			//addr 0, 4 cfg registers
+					go_idle_addr :     			begin                       	
 											go_to_idle_d = 1'b1;
 											ack_outstanding_d = 1'b1;
 										end
+					INTR_STATE_address : begin
+											INTR_STATE_d = 1'b0;
+											INTR_STATE_we_d = 1'b1;
+											ack_outstanding_d = 1'b1;
+										end
+					INTR_ENABLE_address : begin
+											INTR_ENABLE_d = tl_cpu2csr.a_data[31];
+											INTR_ENABLE_we_d = 1'b1;
+											ack_outstanding_d = 1'b1;
+										end
+					INTR_TEST_address : begin
+											INTR_TEST_d = tl_cpu2csr.a_data[31];
+											INTR_TEST_we_d = 1'b1;
+											ack_outstanding_d = 1'b1;
+										end
 					default: 				begin
-											//tl_csr2cpu_d = tl_err_rsp_cpu_outstanding;
 											activate_cpu_err_resp_d = 1'b1;
-											go_to_idle_d = 1'b0;
 										end 
 					endcase
 			end else begin
-				//reimplement this section, because err rsp is already buffered with FF, therefor we just net to multiplex it within the next iteration.
-				//tl_csr2cpu_d = tl_err_rsp_cpu_outstanding;
 				activate_cpu_err_resp_d = 1'b1;
-				go_to_idle_d = 1'b0;
 			end
 		//Here we have a actual PartialData, Specification of TileLink 4.6 Byte Lanes indicates that there are no spaces between active byte lanes
 		//For now we allow it here to address with inactive bytelanes between active bytelanes
@@ -269,7 +316,6 @@ endgenerate
 			//Case for checking if it's writting pmp address
 			//For PartialData we care about [30:29] (Byte-Offset) for FullData we don't care
 			if ( cpu_addr_reg_abs <= ( TotalIbexCSR - 1 ) ) begin
-				go_to_idle_d = 1'b0;
 				rd_data_csr_buffer = rd_data_csr[cpu_addr_reg_abs];
 				for (int i = 0; i <= 3; i++) begin      		//set write enables to 0 after every op
 					rd_data_csr_byte[i] = rd_data_csr_buffer[(8*i+7):(8*i)];
@@ -280,7 +326,6 @@ endgenerate
 
 				wr_data_csr[cpu_addr_reg_abs] = {wr_data_csr_byte[3],wr_data_csr_byte[2],wr_data_csr_byte[1],wr_data_csr_byte[0]};
 				wr_en_csr[cpu_addr_reg_abs] = 1'b1;
-				go_to_idle_d = 1'b0;
 				ack_outstanding_d = 1'b1;
 			end else if ( cpu_addr_reg_abs < max_bytes_addressable )begin
 				case (cpu_addr_reg_abs)
@@ -289,22 +334,32 @@ endgenerate
 											go_to_idle_d = 1'b1;
 											ack_outstanding_d = 1'b1;
 										end
+					INTR_STATE_address : begin
+											//INTR_STATE_d = 1'b0;
+											INTR_STATE_we_d = 1'b1;
+											ack_outstanding_d = 1'b1;
+										end
+					INTR_ENABLE_address : begin
+											INTR_ENABLE_d = tl_cpu2csr.a_data[31];
+											INTR_ENABLE_we_d = 1'b1;
+											ack_outstanding_d = 1'b1;
+										end
+					INTR_TEST_address : begin
+											INTR_TEST_d = tl_cpu2csr.a_data[31];
+											INTR_TEST_we_d = 1'b1;
+											ack_outstanding_d = 1'b1;
+										end
 					default: 				begin
 											//tl_csr2cpu_d = tl_err_rsp_cpu_outstanding;
 											activate_cpu_err_resp_d = 1'b1;
-											go_to_idle_d = 1'b0;
 										end 
 				endcase
 			end else begin
-				//reimplement this section, because err rsp is already buffered with FF, therefor we just net to multiplex it within the next iteration.
-				//tl_csr2cpu_d = tl_err_rsp_cpu_outstanding;
 				activate_cpu_err_resp_d = 1'b1;
-				go_to_idle_d = 1'b0;
 			end
 		
 		//For this case we need to pass csr2cpu through a register, to be able to send it in the next clock cycle.
 		end else if (tl_cpu2csr.a_opcode == Get && ( number_bits_a_mask == a_size_int ) ) begin 
-			go_to_idle_d = 1'b0;
 			ack_opcode_d = AccessAckData;
 			if ( cpu_addr_reg_abs <= ( TotalIbexCSR - 1 ) ) begin
 				tl_csr2cpu_d.d_data = rd_data_csr[cpu_addr_reg_abs];
@@ -329,6 +384,16 @@ endgenerate
 										tl_csr2cpu_d.d_data[31:2] = '{30{1'b0}};
 										ack_outstanding_d = 1'b1;
 									end
+				INTR_STATE_address : 			begin
+										tl_csr2cpu_d.d_data[31] = INTR_STATE_q;
+										tl_csr2cpu_d.d_data[30:0] = '{31{1'b0}};
+										ack_outstanding_d = 1'b1;
+									end
+				INTR_ENABLE_address : 			begin
+										tl_csr2cpu_d.d_data[31] = INTR_ENABLE_q;
+										tl_csr2cpu_d.d_data[30:0] = '{31{1'b0}};
+										ack_outstanding_d = 1'b1;
+									end
 				default: 				begin
 										//tl_csr2cpu = tl_err_rsp_cpu_outstanding;
 										activate_cpu_err_resp_d = 1'b1;
@@ -343,15 +408,41 @@ endgenerate
 		end else begin
 			//tl_csr2cpu_d = tl_err_rsp_cpu_outstanding;
 			activate_cpu_err_resp_d = 1'b1;
-			go_to_idle_d = 1'b0;
 		end
+	end else begin
+		tl_cpu2csr_d = tl_cpu2csr_q;
 	end
+	
 	if (ack_outstanding_q) begin
 		//set write enables to 0 after every op
 		for (int i=0;i< TotalIbexCSR ;i++) begin
 			wr_en_csr[i] = 1'b0;
 		end
 		number_bits_a_mask = 0;
+	end
+	/*
+	end else if (!ack_outstanding_q && INTR_ENABLE_we_q) begin
+		INTR_ENABLE_we_d = 1'b0;
+	end else if (!ack_outstanding_q && INTR_STATE_we_q) begin
+		INTR_STATE_we_d = 1'b0;
+	end else if (!ack_outstanding_q && INTR_TEST_we_q) begin
+		INTR_TEST_we_d = 1'b0;
+	end
+	*//**/
+	if (!INTR_ENABLE_we_d) begin
+		INTR_ENABLE_d = INTR_ENABLE_q;
+	end
+	if (irq_d) begin
+		INTR_STATE_d = 1'b1;
+	end else begin
+		if (INTR_STATE_we_d) begin
+			INTR_STATE_d = 1'b0;
+		end else begin
+			INTR_STATE_d = INTR_STATE_q;
+		end
+	end
+	if (!INTR_TEST_we_d) begin
+		INTR_TEST_d = INTR_TEST_q;
 	end
 	if (tl_cpu2csr.d_ready && activate_cpu_err_resp_q) begin
 		tl_csr2cpu.d_data = tl_err_rsp_cpu_outstanding.d_data;
@@ -373,18 +464,37 @@ endgenerate
 		tl_csr2cpu.d_size = 2'b10;
 		tl_csr2cpu.d_error = 1'b0;
 		ack_outstanding_d = 1'b0;
+		
 	end else if (!tl_cpu2csr.d_ready && ack_outstanding_q) begin
 		ack_outstanding_d = ack_outstanding_q;
-	end else begin
-		tl_csr2cpu.d_valid = 1'b0;
-		
-		//go_to_idle_d = 1'b0;
-	/*end else begin
-		ack_outstanding_d = ack_outstanding_q;*/
 	end
-end 
+end
 
- 
+//logic event_intr_rise, event_intr_fall, event_intr_actlow, event_intr_acthigh;
+logic junk_state_de,junk_state_d;
+logic INTR_TEST_q_all_one;
+
+assign INTR_TEST_q_all_one = &INTR_TEST_q;
+//Inside prim_intr_hw intr_o = reg2hw_intr_state_q_i & reg2hw_intr_enable_q_i
+
+/*
+prim_intr_hw #(.Width(1), .FlopOutput(1'b0)) intr_hw (
+	.clk_i			(clk),
+	.rst_ni 		(rst),
+	.event_intr_i		(irq_d),
+	.reg2hw_intr_enable_q_i	(INTR_ENABLE_q),
+	.reg2hw_intr_test_q_i	(INTR_TEST_q),
+	.reg2hw_intr_test_qe_i 	(INTR_TEST_q_all_one),
+	.reg2hw_intr_state_q_i 	(INTR_STATE_d),
+	.hw2reg_intr_state_de_o (),
+	.hw2reg_intr_state_d_o 	(),
+	.intr_o			(irq_q)
+
+
+);
+*/
+
+
 logic denied_addr_read_d, denied_addr_read_q;
 logic denied_req_type_read_d, denied_req_type_read_q;
 
@@ -394,7 +504,7 @@ logic denied_req_type_read_d, denied_req_type_read_q;
     if (!rst) begin                    
 	source_id_q <= 0;
 	err_rsp_sent_q <= 0;
-	irq_q <= 0;
+	//irq_q <= 0;
 	ack_outstanding_q <= 0;
 	denied_reg_addr_q <= 0;
 	denied_reg_type_q <= 0;
@@ -406,21 +516,35 @@ logic denied_req_type_read_d, denied_req_type_read_q;
 	tl_csr2cpu_q <= '0;//VHDL syntax (others => '0') (all 0)
 	pmp_reg_err_q <= 1'b0;
 	tl_err_rsp_device_outstanding_q <= '0;
+	INTR_STATE_q <= 1'b0;
+	INTR_ENABLE_q <= 1'b0;
+	INTR_TEST_q <= 1'b0;
+	INTR_STATE_we_q <= 1'b0;
+	INTR_ENABLE_we_q <= 1'b0;
+	INTR_TEST_we_q <= 1'b0;
+	tl_cpu2csr_q <= '0;
     end else begin
-      ack_opcode_q <= ack_opcode_d;
-      source_id_q <= source_id_d;
-      err_rsp_sent_q <= err_rsp_sent_d;
-      irq_q <= irq_d;   
-      ack_outstanding_q <= ack_outstanding_d;
-      denied_reg_addr_q <= denied_reg_addr_d;
-      denied_reg_type_q <= denied_reg_type_d;
-      go_to_idle_q <= go_to_idle_d;
-      denied_addr_read_q <= denied_addr_read_d;
-      //denied_reg_type_q <= denied_reg_type_d;
-      tl_csr2cpu_q <= tl_csr2cpu_d;
-      activate_cpu_err_resp_q <= activate_cpu_err_resp_d;
-      pmp_reg_err_q[0] <= pmp_reg_err_d[0];
+	ack_opcode_q <= ack_opcode_d;
+	source_id_q <= source_id_d;
+	err_rsp_sent_q <= err_rsp_sent_d;
+	//irq_q <= irq_d;   
+	ack_outstanding_q <= ack_outstanding_d;
+	denied_reg_addr_q <= denied_reg_addr_d;
+	denied_reg_type_q <= denied_reg_type_d;
+	go_to_idle_q <= go_to_idle_d;
+	denied_addr_read_q <= denied_addr_read_d;
+	//denied_reg_type_q <= denied_reg_type_d;
+	tl_csr2cpu_q <= tl_csr2cpu_d;
+	activate_cpu_err_resp_q <= activate_cpu_err_resp_d;
+	pmp_reg_err_q[0] <= pmp_reg_err_d[0];
 	tl_err_rsp_device_outstanding_q <= tl_err_rsp_device_outstanding_d;
+	tl_cpu2csr_q <= tl_cpu2csr_d;
+	INTR_STATE_q <= INTR_STATE_d;
+	INTR_ENABLE_q <= INTR_ENABLE_d;
+	INTR_TEST_q <= INTR_TEST_d;
+	INTR_STATE_we_q <= INTR_STATE_we_d;
+	INTR_ENABLE_we_q <= INTR_ENABLE_we_d;
+	INTR_TEST_we_q <= INTR_TEST_we_d;
     end
   end
   
@@ -439,6 +563,7 @@ end
   
   
   always_comb begin
+	irq_d = 1'b0;
     case(current_state)                  
               
       idle :	begin
@@ -446,7 +571,7 @@ end
 			tl_pmp2d.d_ready = tl_h2pmp.d_ready;             
 			tl_pmp2h = tl_d2pmp;                              
 			//tl_pmp2d.a_valid = 1'b0;  
-			irq_d = 1'b0;
+			//irq_d = 1'b0;
 			//Check if access from host to pmp is a valid message and the device is ready 
 			//if (tl_h2pmp.a_valid && tl_d2pmp.a_ready) begin 
 			if (tl_h2pmp.a_valid && tl_d2pmp.a_ready) begin 

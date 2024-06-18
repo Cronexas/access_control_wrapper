@@ -1,0 +1,187 @@
+////////////////////////
+//    FSM properties   /
+////////////////////////
+property state_transition_1_to_1;
+	//Holds with or without commented assertions
+	t ##0 current_state == idle and
+	t ##0 pmp_req_err == 1'b0 //and
+	implies
+	t ##0 tl_pmp2d == tl_h2pmp and
+	t ##0 tl_pmp2h == tl_d2pmp and
+	t ##1 current_state == idle;
+endproperty
+
+
+//Property fails if we remove d2pmp.a_ready from control wrapper.
+//For now I expect it as mandatory.
+property state_transition_1_to_2;
+	t ##0 current_state == idle and
+	//t ##0 err_rsp_sent_q == 1'b0 and
+	//t ##0 go_to_idle_q == 1'b0 and
+	t ##0 pmp_req_err == 1'b1 and
+	t ##0 tl_h2pmp.a_valid == 1'b1 and
+	t ##0 tl_d2pmp.a_ready == 1'b1 and
+	t ##0 cpu_addr_rel ==  '0 and
+	t ##1 INTR_ENABLE_q == 1'b1
+	implies
+	
+	t ##0 tl_pmp2d.a_valid == 1'b0 and
+	//h2pmp shouldn't be passed through if we go to blocking state
+	t ##0 tl_pmp2d.d_ready == tl_h2pmp.d_ready and
+	//devices to host -> a_ready, diff from spec 
+	pmp2h_d_pass_all and
+	t ##0 tl_pmp2h.a_ready == 1'b1 and
+	//t ##1 tl_pmp2h.d_error = 1'b1 and
+	//t ##1 err_rsp_sent_q == 1'b0 and
+	//t ##1 go_to_idle_q == 1'b0 and
+	t ##0 irq_d == 1'b1 and
+	t ##1 current_state == block_start and
+	t ##1 irq_q == 1'b1;
+endproperty
+
+property state_transition_2_to_2;
+	t ##0 current_state == block_start and
+	//t ##0 err_rsp_sent_q == 1'b0 and
+	//t ##0 go_to_idle_q == 1'b0 and
+	t ##0 tl_h2pmp.d_ready == 1'b0 and
+	t ##0 go_to_idle_d == 1'b0
+	//t ##0 cpu_addr_rel ==  '0
+	implies
+	//error of pmp2h is always 1 CC later (Error rsp unit behviour)
+	t ##1 current_state == block_start and //Holds
+	//t ##1 err_rsp_sent_q == 1'b0 and
+	//t ##1 go_to_idle_q == 1'b0 and
+	t ##0 tl_pmp2d.a_valid == 1'b0 and //Holds
+	t ##0 tl_pmp2d.d_ready == 1'b0 and //Holds
+	t ##0 tl_pmp2h.d_valid == 1'b1 and //Holds
+	t ##0 tl_pmp2h.d_error == 1'b1 and //Fails
+	//t ##0 tl_pmp2h.d_source == tl_err_rsp_device_outstanding.d_source and //Holds
+	t ##0 tl_pmp2h.a_ready == 1'b0; //Fails
+endproperty
+
+property state_transition_2_to_3;
+	t ##0 current_state == block_start and
+	t ##0 tl_h2pmp.d_ready == 1'b0 and
+	//t ##0 go_to_idle_d == 1'b1 and
+	//t ##0 err_rsp_sent_q == 1'b0 and
+	t ##0 go_to_idle_d == 1'b1
+	implies
+	t ##1 current_state == block_idle and //hold
+	t ##0 tl_pmp2d.a_valid == 1'b0 and //holds
+	t ##0 tl_pmp2d.d_ready == 1'b0 and //holds
+	t ##0 tl_pmp2h.d_error == 1'b1 and //fails
+	t ##0 tl_pmp2h.d_valid == 1'b1 and //holds
+	//t ##0 tl_pmp2h.d_source == tl_err_rsp_device_outstanding.d_source and
+	t ##0 tl_pmp2h.a_ready == 1'b0; //holds
+	//t ##0 err_rsp_sent_q == 1'b0 and
+	//t ##0 go_to_idle_q == 1'b1;// and
+	//t ##0 irq_q == 1'b1;
+endproperty
+property state_transition_2_to_1;
+	t ##0 current_state == block_start and
+	t ##0 go_to_idle_d == 1'b1 and
+	t ##0 tl_h2pmp.d_ready == 1'b1
+	implies
+	t ##0 tl_pmp2d.a_valid == 1'b0 and //holds
+	t ##0 tl_pmp2d.d_ready == 1'b0 and //holds
+	t ##0 tl_pmp2h.d_error == 1'b1 and //fails
+	t ##0 tl_pmp2h.d_valid == 1'b1 and //holds
+	t ##0 tl_pmp2h.a_ready == 1'b0 and //holds
+	t ##1 current_state == idle;
+endproperty
+//write induction properties to prove source
+property state_transition_2_to_4;
+	t ##0 current_state == block_start and
+	t ##0 tl_h2pmp.d_ready == 1'b1 and
+	t ##0 go_to_idle_d == 1'b0
+	//t ##0 err_rsp_sent_q == 1'b0 and
+	//t ##0 go_to_idle_q == 1'b0
+	implies
+	t ##0 tl_pmp2d.a_valid == 1'b0 and //holds
+	t ##0 tl_pmp2d.d_ready == 1'b0 and //holds
+	t ##0 tl_pmp2h.d_valid == 1'b1 and //holds
+	t ##0 tl_pmp2h.d_error == 1'b1 and //holds
+	//t ##1 tl_pmp2h.d_source == 1'b1 and
+	t ##0 tl_pmp2h.a_ready == 1'b0 and
+	t ##1 current_state == block_err;
+	//t ##1 err_rsp_sent_q == 1'b1 and
+	//t ##1 go_to_idle_q == 1'b0;
+endproperty
+
+property state_transition_3_to_3;
+	t ##0 current_state == block_idle and
+	t ##0 tl_h2pmp.d_ready == 1'b0 //and
+	//t ##0 err_rsp_sent_q == 1'b0 and
+	//t ##0 go_to_idle_q == 1'b1
+	implies
+	t ##0 tl_pmp2d.a_valid == 1'b0 and
+	t ##0 tl_pmp2d.d_ready == 1'b0 and
+	t ##0 tl_pmp2h.d_valid == 1'b1 and
+	t ##0 tl_pmp2h.d_error == 1'b1 and
+	t ##1 current_state == block_idle;// and
+	//t ##1 err_rsp_sent_q == 1'b0 and
+	//t ##1 go_to_idle_q == 1'b1;
+endproperty
+
+property state_transition_3_to_1;
+	t ##0 current_state == block_idle and
+	t ##0 tl_h2pmp.d_ready == 1'b1 //and
+	//t ##0 err_rsp_sent_q == 1'b0 and
+	//t ##0 go_to_idle_q == 1'b1
+	implies
+	t ##0 tl_pmp2d.a_valid == 1'b0 and
+	t ##0 tl_pmp2d.d_ready == 1'b0 and
+	t ##0 tl_pmp2h.d_valid == 1'b1 and
+	t ##0 tl_pmp2h.d_error == 1'b1 and
+	t ##0 tl_pmp2h.a_ready == 1'b0 and
+	//t ##0 tl_pmp2h.source == 1'b1 and
+	t ##1 current_state == idle;
+	//t ##1 err_rsp_sent_q == 1'b0 and
+	//t ##1 go_to_idle_q == 1'b0;
+endproperty
+
+property state_transition_4_to_4;
+	t ##0 current_state == block_err and
+	t ##0 go_to_idle_d == 1'b0
+	//t ##0 err_rsp_sent_q == 1'b1 and
+	//t ##0 go_to_idle_q == 1'b0
+	implies
+	t ##0 tl_pmp2d.a_valid == 1'b0 and //holds
+	t ##0 tl_pmp2d.d_ready == 1'b0 and //holds
+	pmp2h_d_pass_all and
+	t ##0 tl_pmp2h.a_ready == 1'b0 and
+	t ##1 current_state == block_err;// and
+	//t ##1 err_rsp_sent_q == 1'b1 and
+	//t ##1 go_to_idle_q == 1'b0;
+endproperty
+
+property state_transition_4_to_1;
+	t ##0 current_state == block_err and
+	t ##0 go_to_idle_d == 1'b1
+	//t ##0 err_rsp_sent_q == 1'b1 and
+	//t ##0 go_to_idle_q == 1'b0
+	implies
+	/*
+	t ##0 tl_pmp2d.a_valid == 1'b0 and
+	t ##0 tl_pmp2d.d_ready == tl_h2pmp.d_ready and
+	pmp2h_d_pass_all and //holds
+	t ##1 tl_pmp2h.a_ready == 1'b0 and
+	*/
+	t ##0 tl_pmp2d == tl_h2pmp and
+	t ##0 tl_d2pmp == tl_pmp2h and
+	t ##1 current_state == idle;
+	//t ##1 err_rsp_sent_q == 1'b0 and
+	//t ##1 go_to_idle_q == 1'b0;
+endproperty
+
+//Check State Transitions
+a_state_transition_1_to_1:						assert property (@(posedge clk) disable iff (rst==0) state_transition_1_to_1);
+a_state_transition_1_to_2:						assert property (@(posedge clk) disable iff (rst==0) state_transition_1_to_2);
+a_state_transition_2_to_2:						assert property (@(posedge clk) disable iff (rst==0) state_transition_2_to_2);
+a_state_transition_2_to_1:						assert property (@(posedge clk) disable iff (rst==0) state_transition_2_to_1);
+a_state_transition_2_to_3:						assert property (@(posedge clk) disable iff (rst==0) state_transition_2_to_3);
+a_state_transition_2_to_4:						assert property (@(posedge clk) disable iff (rst==0) state_transition_2_to_4);
+a_state_transition_3_to_3:						assert property (@(posedge clk) disable iff (rst==0) state_transition_3_to_3);
+a_state_transition_3_to_1:						assert property (@(posedge clk) disable iff (rst==0) state_transition_3_to_1);
+a_state_transition_4_to_4:						assert property (@(posedge clk) disable iff (rst==0) state_transition_4_to_4);
+a_state_transition_4_to_1:						assert property (@(posedge clk) disable iff (rst==0) state_transition_4_to_1);

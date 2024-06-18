@@ -42,7 +42,32 @@ read_verilog -golden  -pragma_ignore {} packages/tlul_err_resp.sv
 read_verilog -golden  -pragma_ignore {} packages/tlul_pkg.sv
 read_verilog -golden  -pragma_ignore {} packages/tlul_rsp_intg_gen.sv
 read_verilog -golden  -pragma_ignore {} packages/top_pkg.sv
+read_verilog -golden  -pragma_ignore {} packages/access_control_wrapper_reg_pkg.sv
+read_verilog -golden  -pragma_ignore {} packages/access_control_wrapper_reg_top.sv
+read_verilog -golden  -pragma_ignore {} packages/prim_intr_hw.sv
 read_verilog -golden  -pragma_ignore {} packages/prim_assert_dummy_macros.svh
+read_verilog -golden  -pragma_ignore {} packages/prim_reg_we_check.sv
+read_verilog -golden  -pragma_ignore {} packages/prim_buf.sv
+read_verilog -golden  -pragma_ignore {} packages/prim_util_pkg.sv
+read_verilog -golden  -pragma_ignore {} packages/prim_onehot_check.sv
+read_verilog -golden  -pragma_ignore {} packages/tlul_cmd_intg_chk.sv
+read_verilog -golden  -pragma_ignore {} packages/prim_secded_inv_64_57_dec.sv
+read_verilog -golden  -pragma_ignore {} packages/tlul_data_integ_dec.sv
+read_verilog -golden  -pragma_ignore {} packages/prim_secded_inv_39_32_dec.sv
+read_verilog -golden  -pragma_ignore {} packages/tlul_adapter_reg.sv
+read_verilog -golden  -pragma_ignore {} packages/tlul_err.sv
+read_verilog -golden  -pragma_ignore {} packages/prim_subreg_pkg.sv
+read_verilog -golden  -pragma_ignore {} packages/prim_subreg.sv
+read_verilog -golden  -pragma_ignore {} packages/prim_subreg_arb.sv
+read_verilog -golden  -pragma_ignore {} packages/prim_subreg_ext.sv
+#read_verilog -golden  -pragma_ignore {} packages/
+#read_verilog -golden  -pragma_ignore {} packages/
+#read_verilog -golden  -pragma_ignore {} packages/
+
+
+
+
+
 
 #read_verilog -golden  -pragma_ignore {} ip/tlul/rtl/tlul_pkg.sv
 #read_verilog -golden  -pragma_ignore {} ip/ibex/rtl/ibex_pkg.sv

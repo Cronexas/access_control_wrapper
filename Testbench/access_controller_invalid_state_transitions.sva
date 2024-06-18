@@ -1,0 +1,42 @@
+//Here we will check forbidden state transitions
+property state_transition_1_to_3_unallowed;
+	t ##0 current_state == idle
+	implies 
+	t ##1 current_state !== block_idle;
+endproperty
+
+property state_transition_1_to_4_unallowed;
+	t ##0 current_state == idle
+	implies 
+	t ##1 current_state != block_err;
+endproperty
+
+property state_transition_3_to_2_unallowed;
+	t ##0 current_state == block_idle
+	implies 
+	t ##1 current_state != block_start;
+endproperty
+
+property state_transition_3_to_4_unallowed;
+	t ##0 current_state == block_idle
+	implies 
+	t ##1 current_state != block_err;
+endproperty
+
+property state_transition_4_to_2_unallowed;
+	t ##0 current_state == block_err
+	implies 
+	t ##1 current_state != block_start;
+endproperty
+property state_transition_4_to_3_unallowed;
+	t ##0 current_state == block_err
+	implies 
+	t ##1 current_state != block_idle;
+endproperty
+
+a_state_transition_1_to_3_unallowed:					assert property (@(posedge clk) disable iff (rst==0) state_transition_1_to_3_unallowed);
+a_state_transition_1_to_4_unallowed:					assert property (@(posedge clk) disable iff (rst==0) state_transition_1_to_4_unallowed);
+a_state_transition_3_to_2_unallowed:					assert property (@(posedge clk) disable iff (rst==0) state_transition_3_to_2_unallowed);
+a_state_transition_3_to_4_unallowed:					assert property (@(posedge clk) disable iff (rst==0) state_transition_3_to_4_unallowed);
+a_state_transition_4_to_2_unallowed:					assert property (@(posedge clk) disable iff (rst==0) state_transition_3_to_2_unallowed);
+a_state_transition_4_to_3_unallowed:					assert property (@(posedge clk) disable iff (rst==0) state_transition_3_to_4_unallowed);

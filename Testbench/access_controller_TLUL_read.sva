@@ -1,0 +1,130 @@
+////////////////////////
+////     CSR2CPU    ////
+////////////////////////
+property state_get_denied_reg_addr;
+	//Holds with or without commented assertions	
+	logic [31:0] denied_reg_addr_q_content;
+	logic [7:0] host_source;
+	t ##0 set_freeze(denied_reg_addr_q_content, denied_reg_addr_q) and
+	t ##0 set_freeze(host_source, tl_cpu2csr.a_source) and
+	t ##0 tl_cpu2csr.a_valid == 1'b1 and
+	t ##0 tl_csr2cpu.a_ready == 1'b1 and
+	t ##0 tl_cpu2csr.a_opcode == Get and
+	t ##0 number_bits_a_mask == a_size_int and
+	t ##0 tl_cpu2csr.a_address == 32'h000003C4 and 	
+	t ##1 tl_cpu2csr.d_ready == 1'b1
+	implies
+	t ##0 ack_outstanding_d == 1'b1 and //holds
+	t ##1 tl_csr2cpu.a_ready == 1'b0 and //holds
+	t ##1 tl_csr2cpu.d_data == denied_reg_addr_q_content and //holds
+	t ##1 tl_csr2cpu.d_valid == 1'b1 and //holds
+	t ##1 tl_csr2cpu.d_opcode == 3'h1 and //holds //AccessAckData = 3'h1
+	t ##1 tl_csr2cpu.d_source == host_source and //holds
+	t ##1 tl_csr2cpu.d_size == 2'b10 and
+	t ##1 tl_csr2cpu.d_error == 1'b0;
+endproperty
+
+
+property state_get_denied_reg_type;
+	//Holds with or without commented assertions
+	logic [2:0] denied_reg_type_q_content;
+	logic [7:0] host_source;
+	t ##0 set_freeze(denied_reg_type_q_content, denied_reg_type_q) and
+	t ##0 set_freeze(host_source, tl_cpu2csr.a_source) and
+	t ##0 tl_cpu2csr.a_valid == 1'b1 and
+	t ##0 tl_csr2cpu.a_ready == 1'b1 and
+	t ##0 tl_cpu2csr.a_opcode == Get and
+	t ##0 number_bits_a_mask == a_size_int and
+	t ##0 tl_cpu2csr.a_address == 32'h000003C8 and
+	t ##1 tl_cpu2csr.d_ready == 1'b1
+	implies
+	t ##0 ack_outstanding_d == 1'b1 and //holds
+	t ##1 tl_csr2cpu.a_ready == 1'b0 and //holds
+	t ##1 tl_csr2cpu.d_data[2:0] == denied_reg_type_q_content and //holds
+	t ##1 tl_csr2cpu.d_data[31:3] == 29'b0 and
+	t ##1 tl_csr2cpu.d_valid == 1'b1 and //holds
+	t ##1 tl_csr2cpu.d_opcode == 3'h1 and //holds //AccessAckData = 3'h1
+	t ##1 tl_csr2cpu.d_source == host_source and //holds
+	t ##1 tl_csr2cpu.d_size == 2'b10 and
+	t ##1 tl_csr2cpu.d_error == 1'b0;
+endproperty
+
+property state_get_current_state;
+	logic [1:0] current_state_content;
+	logic [7:0] host_source;
+	t ##0 set_freeze(current_state_content, current_state) and
+	t ##0 set_freeze(host_source, tl_cpu2csr.a_source) and
+	t ##0 tl_cpu2csr.a_valid == 1'b1 and
+	t ##0 tl_csr2cpu.a_ready == 1'b1 and
+	t ##0 tl_cpu2csr.a_opcode == Get and
+	t ##0 number_bits_a_mask == a_size_int and
+	t ##0 tl_cpu2csr.a_address == 32'h000003CC and
+	t ##1 tl_cpu2csr.d_ready == 1'b1
+	
+	implies
+	t ##0 ack_outstanding_d == 1'b1 and //holds
+	t ##1 tl_csr2cpu.a_ready == 1'b0 and //holds
+	t ##1 tl_csr2cpu.d_data[1:0] == current_state_content and //holds
+	t ##1 tl_csr2cpu.d_data[31:2] == 30'b0 and
+	t ##1 tl_csr2cpu.d_valid == 1'b1 and //holds
+	t ##1 tl_csr2cpu.d_opcode == 3'h1 and //holds //AccessAckData = 3'h1
+	t ##1 tl_csr2cpu.d_source == host_source and //holds
+	t ##1 tl_csr2cpu.d_size == 2'b10 and
+	t ##1 tl_csr2cpu.d_error == 1'b0;
+endproperty
+property get_INTR_STATE;
+	logic	    INTR_STATE_content;
+	logic [7:0] host_source;
+	t ##0 set_freeze(INTR_STATE_content, INTR_STATE_q) and
+	t ##0 set_freeze(host_source, tl_cpu2csr.a_source) and
+	t ##0 tl_cpu2csr.a_valid == 1'b1 and
+	t ##0 tl_csr2cpu.a_ready == 1'b1 and
+	t ##0 tl_cpu2csr.a_opcode == Get and
+	t ##0 number_bits_a_mask == a_size_int and
+	t ##0 tl_cpu2csr.a_address == 32'h000003D0 and
+	t ##1 tl_cpu2csr.d_ready == 1'b1
+	
+	implies
+	t ##0 ack_outstanding_d == 1'b1 and //holds
+	t ##1 tl_csr2cpu.a_ready == 1'b0 and //holds
+	t ##1 tl_csr2cpu.d_data[31] == INTR_STATE_content and //holds
+	t ##1 tl_csr2cpu.d_data[30:0] == 31'b0 and
+	t ##1 tl_csr2cpu.d_valid == 1'b1 and //holds
+	t ##1 tl_csr2cpu.d_opcode == 3'h1 and //holds //AccessAckData = 3'h1
+	t ##1 tl_csr2cpu.d_source == host_source and //holds
+	t ##1 tl_csr2cpu.d_size == 2'b10 and
+	t ##1 tl_csr2cpu.d_error == 1'b0;
+endproperty
+
+property get_INTR_ENABLE;
+	logic	    INTR_ENABLE_content;
+	logic [7:0] host_source;
+	t ##0 set_freeze(INTR_ENABLE_content, INTR_ENABLE_q) and
+	t ##0 set_freeze(host_source, tl_cpu2csr.a_source) and
+	t ##0 tl_cpu2csr.a_valid == 1'b1 and
+	t ##0 tl_csr2cpu.a_ready == 1'b1 and
+	t ##0 tl_cpu2csr.a_opcode == Get and
+	t ##0 number_bits_a_mask == a_size_int and
+	t ##0 tl_cpu2csr.a_address == 32'h000003D4 and
+	t ##1 tl_cpu2csr.d_ready == 1'b1
+	
+	implies
+	t ##0 ack_outstanding_d == 1'b1 and //holds
+	t ##1 tl_csr2cpu.a_ready == 1'b0 and //holds
+	t ##1 tl_csr2cpu.d_data[31] == INTR_ENABLE_content and //holds
+	t ##1 tl_csr2cpu.d_data[30:0] == 31'b0 and
+	t ##1 tl_csr2cpu.d_valid == 1'b1 and //holds
+	t ##1 tl_csr2cpu.d_opcode == 3'h1 and //holds //AccessAckData = 3'h1
+	t ##1 tl_csr2cpu.d_source == host_source and //holds
+	t ##1 tl_csr2cpu.d_size == 2'b10 and
+	t ##1 tl_csr2cpu.d_error == 1'b0;
+endproperty
+
+//csr2cpu interactions (TileLink GET)
+a_state_get_denied_reg_addr:						assert property (@(posedge clk) disable iff (rst==0) state_get_denied_reg_addr);
+a_state_get_denied_reg_type:						assert property (@(posedge clk) disable iff (rst==0) state_get_denied_reg_type);
+a_state_get_current_state:						assert property (@(posedge clk) disable iff (rst==0) state_get_current_state);
+//a_check_opentitan_interrupt_hangling:					assert property (@(posedge clk) disable iff (rst==0) check_opentitan_interrupt_hangling);
+//Interrupt Interface
+a_get_INTR_STATE:							assert property (@(posedge clk) disable iff (rst==0) get_INTR_STATE);
+a_get_INTR_ENABLE:							assert property (@(posedge clk) disable iff (rst==0) get_INTR_ENABLE);
