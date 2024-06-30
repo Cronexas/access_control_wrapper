@@ -4,8 +4,10 @@ import tlul_pkg::*;
 import ibex_pkg::*;
 import access_control_wrapper_reg_pkg::*;
 //Rename to fit Filename and Modulename
-module access_control_wrapper(
-
+module access_control_wrapper # (
+parameter logic [23:0]		base_address = 24'b0,
+parameter int unsigned          PMPNumRegions = 4
+) (
 	input logic                    	rst,
 	input logic                    	clk,
 	output logic                   	irq_q,
@@ -23,7 +25,7 @@ module access_control_wrapper(
 //PMP parameters
 parameter int unsigned          PMPGranularity = 0;    
 parameter int unsigned          PMPNumChan = 1;
-parameter int unsigned          PMPNumRegions = 4;     		//n+(n/4) registers for n regions, max is 192!->192*5 (4 Bytes each address + 1Byte config)
+//parameter int unsigned          PMPNumRegions = 4;     		//n+(n/4) registers for n regions, max is 192!->192*5 (4 Bytes each address + 1Byte config)
 parameter int unsigned		NumberConfigEntries =  $ceil(PMPNumRegions/4);
 parameter int unsigned		TotalIbexCSR = PMPNumRegions + NumberConfigEntries;
 parameter int unsigned 		max_pmp_related_addr = 959;// 0 to 959 bytes->960 Bytes -> 192 32 Bit Registers (1x cfg, 4x address)
@@ -67,7 +69,7 @@ logic[2:0]			cpu_a_size;
 logic [31:0]                    wr_data_csr[4:0];         		//csr signals
 logic [31:0]			wr_data_csr_buffer;
 logic [7:0]			wr_data_csr_byte[3:0];
-logic                           wr_en_csr[4:0] = {1'b0, 1'b0, 1'b0, 1'b0, 1'b0};
+logic                           wr_en_csr[TotalIbexCSR:0] = {1'b0, 1'b0, 1'b0, 1'b0, 1'b0};
 logic [31:0]                    rd_data_csr[4:0];
 logic [31:0]			rd_data_csr_buffer;
 logic [7:0]			rd_data_csr_byte[3:0];      
@@ -128,7 +130,7 @@ access_control_wrapper_reg2hw_t reg2hw;
 access_control_wrapper_hw2reg_t hw2reg;
    
   //////////////////////////////// --instantiations
-for (genvar i= 0;i<=4;i++) begin : gen_pmp_csr
+for (genvar i= 0;i<=TotalIbexCSR;i++) begin : gen_pmp_csr
 	ibex_csr #()
 	pmp_csr (
 	.clk_i(clk),
@@ -140,16 +142,6 @@ for (genvar i= 0;i<=4;i++) begin : gen_pmp_csr
 	);
 end
 
-
-
-//  ibex_csr pmp_csr[4:0] (                                   		//instantiate cs registers for pmp
-//   .clk_i(clk),                                            		//register 0 -> pmp cfg 0-3
-//    .rst_ni(rst),                                           		//register 1-4 -> pmp address 0-3
-//   .wr_data_i(wr_data_csr),                                		//register 5 -> hold denied address for irq
-//    .wr_en_i(wr_en_csr),                                    		//register 6 -> hold denied opcode for irq
-//   .rd_data_o(rd_data_csr),                            
-//   .rd_error_o(rd_error_csr)
-// ); 
                                                                                 
   ibex_pmp #(
       .PMPGranularity(PMPGranularity),
@@ -193,7 +185,6 @@ tlul_err_resp cpu_error_response (
   assign csr_pmp_addr[1] = rd_data_csr[2];
   assign csr_pmp_addr[2] = rd_data_csr[3];
   assign csr_pmp_addr[3] = rd_data_csr[4];
-//assign pmp_reg_err_d[0] = pmp_req_err[0];
 //assign 	tl_csr2cpu = 	tl_csr2cpu_q;
 
 
@@ -225,26 +216,6 @@ tlul_err_resp cpu_error_response (
 //Now reimplementing using a base address (for now all 0s [32:10]) and [9:0]
 //Total Address space is 2pow(10)->1024 Possible Byte address -> 192 pmp addresses (32bit) + 98 config (32bit)
 //
-
-//Generate signals for bytewise addressing
-/*
-generate
-	for (genvar i = 0; i <= 3; i++) begin: generate_bytewise_rd_data_csr       		//set write enables to 0 after every op
-		always_comb begin
-			rd_data_csr_byte[i] = rd_data_csr_buffer[(8*i+7):(8*i)];
-		end
-	end
-endgenerate
-generate
-	for (genvar i = 0; i <= 3; i++) begin               		//set write enables to 0 after every op
-		if ( tl_cpu2csr.a_mask[i] == 1'b1) begin
-			assign wr_data_csr_byte[i] = tl_cpu2csr.a_data[( 8*i + 7):(8*i)];
-		end else begin
-			assign wr_data_csr_byte[i] = rd_data_csr_byte[i];
-		end
-	end
-endgenerate
-*/
  always_comb begin
 	irq_q = INTR_STATE_q & INTR_ENABLE_q;
 	tl_csr2cpu.a_ready = !ack_outstanding_q & !activate_cpu_err_resp_q;
@@ -265,14 +236,14 @@ endgenerate
 		number_bits_a_mask = $countones(tl_cpu2csr.a_mask);
 		//absolute address in ibex csr it's byte addressable, but we direct addressing of bytes is not supported. therefor using masking bits and PartialData
 		//cpu_addr_reg_abs = '{'{24{1'b0}},tl_cpu2csr.a_address[9:2]};
-		cpu_addr_reg_abs = {2'b0,tl_cpu2csr.a_address[31:2]};
+		cpu_addr_reg_abs = {24'b0,tl_cpu2csr.a_address[9:2]};
 		a_size_shift_value[31:2] = '{30{1'b0}};
 		a_size_shift_value[1:0]= tl_cpu2csr.a_size[1:0];
 		a_size_int  = constant_one << a_size_shift_value;
 		//For now PutFullData is implemented
 		//For Change from v0.0.9 to v0.1 we combined the PutFullData case and PutPartialData Case which uses all byte lanes. This reduces complexity.
 		//if ( (  tl_cpu2csr.a_opcode == PutFullData || tl_cpu2csr.a_opcode == PutPartialData ) && ( tl_cpu2csr.a_size == 2'b10 ) && ( tl_cpu2csr.a_mask == 4'b1111 ) ) begin  
-		if ( (  tl_cpu2csr.a_opcode == PutFullData || tl_cpu2csr.a_opcode == PutPartialData ) && ( tl_cpu2csr.a_size == 2'b10 ) && ( &tl_cpu2csr.a_mask ) ) begin                                                                  
+		if ( (  tl_cpu2csr.a_opcode == PutFullData || tl_cpu2csr.a_opcode == PutPartialData ) && ( tl_cpu2csr.a_size == 2'b10 ) && ( &tl_cpu2csr.a_mask ) && (tl_cpu2csr.a_address[31:10] == base_address[23:0]) ) begin                                                                  
 			ack_opcode_d = AccessAck;
 			//Check if it's a entry for 
 			if ( cpu_addr_reg_abs <= ( TotalIbexCSR - 1 ) ) begin
@@ -310,7 +281,7 @@ endgenerate
 			end
 		//Here we have a actual PartialData, Specification of TileLink 4.6 Byte Lanes indicates that there are no spaces between active byte lanes
 		//For now we allow it here to address with inactive bytelanes between active bytelanes
-		end else if ( ( tl_cpu2csr.a_opcode == PutPartialData ) && ( ( tl_cpu2csr.a_size < 2'b10 ) ) && ( number_bits_a_mask == a_size_int ) ) begin
+		end else if ( ( tl_cpu2csr.a_opcode == PutPartialData ) && ( ( tl_cpu2csr.a_size < 2'b10 ) ) && ( number_bits_a_mask == a_size_int ) && (tl_cpu2csr.a_address[31:10] == base_address[23:0]) ) begin
 			//Check if the byte addressing is correct. If the length of the data +  start byte of the data exceeds max bytes supported, we return an error.
 			ack_opcode_d = AccessAck;
 			//Case for checking if it's writting pmp address
@@ -318,10 +289,7 @@ endgenerate
 			if ( cpu_addr_reg_abs <= ( TotalIbexCSR - 1 ) ) begin
 				rd_data_csr_buffer = rd_data_csr[cpu_addr_reg_abs];
 				for (int i = 0; i <= 3; i++) begin      		//set write enables to 0 after every op
-					rd_data_csr_byte[i] = rd_data_csr_buffer[(8*i+7):(8*i)];
-				end
-				for (int i = 0; i <= 3; i++) begin      		//set write enables to 0 after every op
-					wr_data_csr_byte[i] = tl_cpu2csr.a_mask[i] ? tl_cpu2csr.a_data[(8*i+7):(8*i)] : rd_data_csr_byte[i];
+					wr_data_csr_byte[i] = tl_cpu2csr.a_mask[i] ? tl_cpu2csr.a_data[(8*i+7):(8*i)] : rd_data_csr_buffer[(8*i+7):(8*i)];
 				end
 
 				wr_data_csr[cpu_addr_reg_abs] = {wr_data_csr_byte[3],wr_data_csr_byte[2],wr_data_csr_byte[1],wr_data_csr_byte[0]};
@@ -359,7 +327,7 @@ endgenerate
 			end
 		
 		//For this case we need to pass csr2cpu through a register, to be able to send it in the next clock cycle.
-		end else if (tl_cpu2csr.a_opcode == Get && ( number_bits_a_mask == a_size_int ) ) begin 
+		end else if (tl_cpu2csr.a_opcode == Get && ( number_bits_a_mask == a_size_int ) && (tl_cpu2csr.a_address[31:10] == base_address[23:0]) ) begin 
 			ack_opcode_d = AccessAckData;
 			if ( cpu_addr_reg_abs <= ( TotalIbexCSR - 1 ) ) begin
 				tl_csr2cpu_d.d_data = rd_data_csr[cpu_addr_reg_abs];
@@ -475,24 +443,6 @@ logic junk_state_de,junk_state_d;
 logic INTR_TEST_q_all_one;
 
 assign INTR_TEST_q_all_one = &INTR_TEST_q;
-//Inside prim_intr_hw intr_o = reg2hw_intr_state_q_i & reg2hw_intr_enable_q_i
-
-/*
-prim_intr_hw #(.Width(1), .FlopOutput(1'b0)) intr_hw (
-	.clk_i			(clk),
-	.rst_ni 		(rst),
-	.event_intr_i		(irq_d),
-	.reg2hw_intr_enable_q_i	(INTR_ENABLE_q),
-	.reg2hw_intr_test_q_i	(INTR_TEST_q),
-	.reg2hw_intr_test_qe_i 	(INTR_TEST_q_all_one),
-	.reg2hw_intr_state_q_i 	(INTR_STATE_d),
-	.hw2reg_intr_state_de_o (),
-	.hw2reg_intr_state_d_o 	(),
-	.intr_o			(irq_q)
-
-
-);
-*/
 
 
 logic denied_addr_read_d, denied_addr_read_q;
@@ -537,7 +487,7 @@ logic denied_req_type_read_d, denied_req_type_read_q;
 	tl_csr2cpu_q <= tl_csr2cpu_d;
 	activate_cpu_err_resp_q <= activate_cpu_err_resp_d;
 	pmp_reg_err_q[0] <= pmp_reg_err_d[0];
-	tl_err_rsp_device_outstanding_q <= tl_err_rsp_device_outstanding_d;
+	//tl_err_rsp_device_outstanding_q <= tl_err_rsp_device_outstanding_d;
 	tl_cpu2csr_q <= tl_cpu2csr_d;
 	INTR_STATE_q <= INTR_STATE_d;
 	INTR_ENABLE_q <= INTR_ENABLE_d;
@@ -564,12 +514,14 @@ end
   
   always_comb begin
 	irq_d = 1'b0;
+	
     case(current_state)                  
               
       idle :	begin
 			next_state = idle;
 			tl_pmp2d.d_ready = tl_h2pmp.d_ready;             
-			tl_pmp2h = tl_d2pmp;                              
+			tl_pmp2h = tl_d2pmp;
+			//pmp_reg_err_d = 1'b0;                              
 			//tl_pmp2d.a_valid = 1'b0;  
 			//irq_d = 1'b0;
 			//Check if access from host to pmp is a valid message and the device is ready 
@@ -583,7 +535,6 @@ end
 					pmp_req_type [0] = PMP_ACC_READ; 			
 				end
 				if (pmp_req_err[0]) begin                                            
-					//next_state = block;
 					next_state = block_start;
 					tl_pmp2d.a_valid = 1'b0;
 					denied_reg_addr_d = tl_h2pmp.a_address;
@@ -600,11 +551,11 @@ end
 				end  
 			end
 	      end                                                   
-	//opentitan err rsp unit doesn't fullfil requirements. Therefor rewritting it.
 	block_start:
 		begin
 			//tl_pmp2d.a_valid = 1'b0;
 			//Next step is to get rid off pmp_reg_err_q
+			
 			if(pmp_reg_err_q[0]) begin
 				pmp_reg_err_d[0] =1'b0;
 				tl_err_rsp_device_outstanding_d = tl_err_rsp_device_outstanding;
@@ -614,7 +565,7 @@ end
 			// For now we keep this if construct.
 			//For later we consider adding an additional internal signal pmp_reg_err_mux_q
 			//this signal represents the output of a multiplexer, which desides between tl_err_rsp_device_outstanding(_q)
-			if (pmp_reg_err_q[0] & tl_h2pmp.d_ready & go_to_idle_d) begin
+			if (tl_h2pmp.d_ready & go_to_idle_d) begin
 				next_state = idle;
 				//tl_pmp2h = tl_err_rsp_device_outstanding;
 
@@ -629,23 +580,7 @@ end
 				tl_pmp2h.d_user = tl_err_rsp_device_outstanding.d_user;
 				tl_pmp2h.d_error = tl_err_rsp_device_outstanding.d_error;
 				tl_pmp2h.a_ready = 1'b0;
-			end else if (!pmp_reg_err_q[0] & tl_h2pmp.d_ready & go_to_idle_d) begin
-				next_state = idle;
-				//tl_pmp2h = tl_err_rsp_device_outstanding_q;
-
-				tl_pmp2h.d_valid = 1'b1;//LOVE THE ERR RESPONSE UNIT! OVERRIDE! ..|.. (This is a hand)
-
-				tl_pmp2h.d_opcode = tl_err_rsp_device_outstanding_q.d_opcode;
-				tl_pmp2h.d_param = tl_err_rsp_device_outstanding_q.d_param;
-				tl_pmp2h.d_size = tl_err_rsp_device_outstanding_q.d_size;
-				tl_pmp2h.d_source = tl_err_rsp_device_outstanding_q.d_source;
-				tl_pmp2h.d_sink = tl_err_rsp_device_outstanding_q.d_sink;
-				tl_pmp2h.d_data = tl_err_rsp_device_outstanding_q.d_data;
-				tl_pmp2h.d_user = tl_err_rsp_device_outstanding_q.d_user;
-				tl_pmp2h.d_error = tl_err_rsp_device_outstanding_q.d_error;
-				//tl_pmp2h.a_ready = tl_err_rsp_device_outstanding_q.a_ready;
-				tl_pmp2h.a_ready = 1'b0;
-			end else if (pmp_reg_err_q[0] & !tl_h2pmp.d_ready & go_to_idle_d) begin
+			end else if (!tl_h2pmp.d_ready & go_to_idle_d) begin
 				next_state = block_idle;
 				//tl_pmp2h = tl_err_rsp_device_outstanding;
 
@@ -660,23 +595,7 @@ end
 				tl_pmp2h.d_user = tl_err_rsp_device_outstanding.d_user;
 				tl_pmp2h.d_error = tl_err_rsp_device_outstanding.d_error ;
 				tl_pmp2h.a_ready = 1'b0;
-			end else if (!pmp_reg_err_q[0] & !tl_h2pmp.d_ready & go_to_idle_d) begin
-				next_state = block_idle;
-				//tl_pmp2h = tl_err_rsp_device_outstanding_q;
-
-				tl_pmp2h.d_valid = 1'b1;//LOVE THE ERR RESPONSE UNIT! OVERRIDE! ..|.. (This is a hand)
-
-				tl_pmp2h.d_opcode = tl_err_rsp_device_outstanding_q.d_opcode;
-				tl_pmp2h.d_param = tl_err_rsp_device_outstanding_q.d_param;
-				tl_pmp2h.d_size = tl_err_rsp_device_outstanding_q.d_size;
-				tl_pmp2h.d_source = tl_err_rsp_device_outstanding_q.d_source;
-				tl_pmp2h.d_sink = tl_err_rsp_device_outstanding_q.d_sink;
-				tl_pmp2h.d_data = tl_err_rsp_device_outstanding_q.d_data;
-				tl_pmp2h.d_user = tl_err_rsp_device_outstanding_q.d_user;
-				tl_pmp2h.d_error = tl_err_rsp_device_outstanding_q.d_error;
-				//tl_pmp2h.a_ready = tl_err_rsp_device_outstanding_q.a_ready;
-				tl_pmp2h.a_ready = 1'b0;
-			end else if (pmp_reg_err_q[0] & tl_h2pmp.d_ready & !go_to_idle_d) begin
+			end else if (tl_h2pmp.d_ready & !go_to_idle_d) begin
 				next_state = block_err;
 				//tl_pmp2h = tl_err_rsp_device_outstanding;
 				
@@ -692,23 +611,7 @@ end
 				tl_pmp2h.d_error = tl_err_rsp_device_outstanding.d_error;
 				//tl_pmp2h.a_ready = tl_err_rsp_device_outstanding.a_ready;
 				tl_pmp2h.a_ready = 1'b0;
-			end else if (!pmp_reg_err_q[0] & tl_h2pmp.d_ready & !go_to_idle_d) begin
-				next_state = block_err;
-				//tl_pmp2h = tl_err_rsp_device_outstanding_q;
-
-				tl_pmp2h.d_valid = 1'b1;//LOVE THE ERR RESPONSE UNIT! OVERRIDE! ..|.. (This is a hand)
-
-				tl_pmp2h.d_opcode = tl_err_rsp_device_outstanding_q.d_opcode;
-				tl_pmp2h.d_param = tl_err_rsp_device_outstanding_q.d_param;
-				tl_pmp2h.d_size = tl_err_rsp_device_outstanding_q.d_size;
-				tl_pmp2h.d_source = tl_err_rsp_device_outstanding_q.d_source;
-				tl_pmp2h.d_sink = tl_err_rsp_device_outstanding_q.d_sink;
-				tl_pmp2h.d_data = tl_err_rsp_device_outstanding_q.d_data;
-				tl_pmp2h.d_user = tl_err_rsp_device_outstanding_q.d_user;
-				tl_pmp2h.d_error = tl_err_rsp_device_outstanding_q.d_error;
-				//tl_pmp2h.a_ready = tl_err_rsp_device_outstanding_q.a_ready;
-				tl_pmp2h.a_ready = 1'b0;
-			end else if (pmp_reg_err_q[0] & !tl_h2pmp.d_ready & !go_to_idle_d) begin
+			end else if (!tl_h2pmp.d_ready & !go_to_idle_d) begin
 				next_state = block_start;
 				//tl_pmp2h = tl_err_rsp_device_outstanding;
 				
@@ -723,25 +626,8 @@ end
 				tl_pmp2h.d_user = tl_err_rsp_device_outstanding.d_user;
 				tl_pmp2h.d_error = tl_err_rsp_device_outstanding.d_error;
 				//tl_pmp2h.a_ready = tl_err_rsp_device_outstanding.a_ready;
-				tl_pmp2h.a_ready = 1'b0;
-			end else begin
-				next_state = block_start;
-				//tl_pmp2h =tl_err_rsp_device_outstanding_q;
-
-				tl_pmp2h.d_valid = 1'b1;//LOVE THE ERR RESPONSE UNIT! OVERRIDE! ..|.. (This is a hand)
-
-				tl_pmp2h.d_opcode = tl_err_rsp_device_outstanding_q.d_opcode;
-				tl_pmp2h.d_param = tl_err_rsp_device_outstanding_q.d_param;
-				tl_pmp2h.d_size = tl_err_rsp_device_outstanding_q.d_size;
-				tl_pmp2h.d_source = tl_err_rsp_device_outstanding_q.d_source;
-				tl_pmp2h.d_sink = tl_err_rsp_device_outstanding_q.d_sink;
-				tl_pmp2h.d_data = tl_err_rsp_device_outstanding_q.d_data;
-				tl_pmp2h.d_user = tl_err_rsp_device_outstanding_q.d_user;
-				tl_pmp2h.d_error = tl_err_rsp_device_outstanding_q.d_error;
-				//tl_pmp2h.a_ready = tl_err_rsp_device_outstanding_q.a_ready;
 				tl_pmp2h.a_ready = 1'b0;
 			end
-			
 			tl_pmp2d.a_valid = 1'b0;
 			tl_pmp2d.d_ready = 1'b0;
 		end
@@ -749,16 +635,15 @@ end
 		begin
 			if(tl_h2pmp.d_ready) begin
 				next_state = idle;
-				//tl_pmp2h = tl_err_rsp_device_outstanding_q;
 			end else begin
 				next_state = block_idle;
 			end
 
-			tl_err_rsp_device_outstanding_d = tl_err_rsp_device_outstanding_q;
+			//tl_err_rsp_device_outstanding_d = tl_err_rsp_device_outstanding_q;
 			tl_pmp2d.a_valid = 1'b0;
 			tl_pmp2d.d_ready = 1'b0;
-			tl_pmp2h.d_valid = 1'b1;//LOVE THE ERR RESPONSE UNIT! OVERRIDE! ..|.. (This is a hand)
-
+			tl_pmp2h.d_valid = 1'b1;
+			/*
 			tl_pmp2h.d_opcode = tl_err_rsp_device_outstanding_q.d_opcode;
 			tl_pmp2h.d_param = tl_err_rsp_device_outstanding_q.d_param;
 			tl_pmp2h.d_size = tl_err_rsp_device_outstanding_q.d_size;
@@ -766,7 +651,15 @@ end
 			tl_pmp2h.d_sink = tl_err_rsp_device_outstanding_q.d_sink;
 			tl_pmp2h.d_data = tl_err_rsp_device_outstanding_q.d_data;
 			tl_pmp2h.d_user = tl_err_rsp_device_outstanding_q.d_user;
-			tl_pmp2h.d_error = tl_err_rsp_device_outstanding_q.d_error;
+			tl_pmp2h.d_error = tl_err_rsp_device_outstanding_q.d_error;*/
+			tl_pmp2h.d_opcode = tl_err_rsp_device_outstanding.d_opcode;
+			tl_pmp2h.d_param = tl_err_rsp_device_outstanding.d_param;
+			tl_pmp2h.d_size = tl_err_rsp_device_outstanding.d_size;
+			tl_pmp2h.d_source = tl_err_rsp_device_outstanding.d_source;
+			tl_pmp2h.d_sink = tl_err_rsp_device_outstanding.d_sink;
+			tl_pmp2h.d_data = tl_err_rsp_device_outstanding.d_data;
+			tl_pmp2h.d_user = tl_err_rsp_device_outstanding.d_user;
+			tl_pmp2h.d_error = tl_err_rsp_device_outstanding.d_error;
 			//tl_pmp2h.a_ready = tl_err_rsp_device_outstanding_q.a_ready;
 			tl_pmp2h.a_ready = 1'b0;
 		end

@@ -4,7 +4,9 @@
 property state_transition_1_to_1;
 	//Holds with or without commented assertions
 	t ##0 current_state == idle and
-	t ##0 pmp_req_err == 1'b0 //and
+	t ##0 pmp_req_err[0] == 1'b0 and
+	t ##0 tl_h2pmp.a_valid == 1'b1 and
+	t ##0 tl_d2pmp.a_ready == 1'b1
 	implies
 	t ##0 tl_pmp2d == tl_h2pmp and
 	t ##0 tl_pmp2h == tl_d2pmp and
@@ -18,7 +20,7 @@ property state_transition_1_to_2;
 	t ##0 current_state == idle and
 	//t ##0 err_rsp_sent_q == 1'b0 and
 	//t ##0 go_to_idle_q == 1'b0 and
-	t ##0 pmp_req_err == 1'b1 and
+	t ##0 pmp_req_err[0] == 1'b1 and
 	t ##0 tl_h2pmp.a_valid == 1'b1 and
 	t ##0 tl_d2pmp.a_ready == 1'b1 and
 	t ##0 cpu_addr_rel ==  '0 and

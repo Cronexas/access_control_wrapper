@@ -68,7 +68,22 @@ property wr_en_csr_always_defined;
 	(wr_en_csr[4] == 1'b1 or
 	 wr_en_csr[4] == 1'b0)
 endproperty
-
+property states_always_defined;
+	 (current_state == 2'b11 or
+	 current_state == 2'b10 or 
+	 current_state == 2'b01 or
+	 current_state == 2'b00) and
+	(next_state == 2'b11 or
+	 next_state == 2'b10 or 
+	 next_state == 2'b01 or
+	 next_state == 2'b00)
+endproperty	
+property pmp_req_err_always_defined;
+	 (pmp_req_err == 1'b1 or
+	 pmp_req_err == 1'b0) /*and
+	(pmp_reg_err_q == 1'b1 or
+	 pmp_reg_err_q == 1'b0)*/
+endproperty
 	
 	
 a_INTR_STATE_always_defined:							assert property (@(posedge clk) disable iff (rst==0)  INTR_STATE_always_defined);
@@ -81,6 +96,8 @@ a_go_to_idle_always_defined:							assert property (@(posedge clk) disable iff (
 a_ack_outstanding_always_defined:						assert property (@(posedge clk) disable iff (rst==0)  ack_outstanding_always_defined);
 a_activate_cpu_err_resp_always_defined:						assert property (@(posedge clk) disable iff (rst==0)  activate_cpu_err_resp_always_defined);
 a_wr_en_csr_always_defined:							assert property (@(posedge clk) disable iff (rst==0)  wr_en_csr_always_defined);
+a_states_always_defined:							assert property (@(posedge clk) disable iff (rst==0)  states_always_defined);
+a_pmp_req_err_always_defined:							assert property (@(posedge clk) disable iff (rst==0)  pmp_req_err_always_defined);
 //a_:							assert property (@(posedge clk) disable iff (rst==0)  );
 
 

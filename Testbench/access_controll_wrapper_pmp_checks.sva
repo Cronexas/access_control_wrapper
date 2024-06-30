@@ -1,0 +1,19 @@
+////////////////////////
+////     CSR2CPU    ////
+////////////////////////
+/*
+property pmp_reg_err_valid;
+	//Holds with or without commented assertions	
+	(t ##0 pmp_req_addr == 34'b0 or
+	t ##0 pmp_req_addr != 34'b0) and 
+	(t ##0 pmp_req_type == 2'b0 or
+	t ##0 pmp_req_type == 2'b01 or
+	t ##0 pmp_req_type == 2'b10)
+	implies
+	t ##0 pmp_reg_err[0] == 1'b0 or
+	t ##0 pmp_reg_err[0] == 1'b1;
+endproperty*/
+
+
+//csr2cpu interactions (TileLink GET)
+//a_pmp_reg_err_valid:						assert property (@(posedge clk) disable iff (rst==0) pmp_reg_err_valid);
