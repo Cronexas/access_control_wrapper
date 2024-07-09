@@ -60,6 +60,7 @@ read_verilog -golden  -pragma_ignore {} packages/prim_subreg_pkg.sv
 read_verilog -golden  -pragma_ignore {} packages/prim_subreg.sv
 read_verilog -golden  -pragma_ignore {} packages/prim_subreg_arb.sv
 read_verilog -golden  -pragma_ignore {} packages/prim_subreg_ext.sv
+read_verilog -golden  -pragma_ignore {} access_control_wrapper.sv
 #read_verilog -golden  -pragma_ignore {} packages/
 #read_verilog -golden  -pragma_ignore {} packages/
 #read_verilog -golden  -pragma_ignore {} packages/
@@ -77,8 +78,10 @@ read_verilog -golden  -pragma_ignore {} packages/prim_subreg_ext.sv
 
 # Sometimes OneSpin can't figure out what file should be the top file. You can manually specify it like this:
 #set_elaborate_option -top !work.miter_top
-read_verilog -golden  -pragma_ignore {} access_control_wrapper.sv
-set_elaborate_option -top verilog!work.access_control_wrapper
+#read_verilog -golden  -pragma_ignore {} access_control_wrapper.sv
+read_verilog -golden  -pragma_ignore {} miter_top.sv
+#set_elaborate_option -top verilog!work.access_control_wrapper
+set_elaborate_option -top verilog!work.miter_top
 # Elaborate the design
 elaborate -golden
 
@@ -93,6 +96,7 @@ set_mode mv
 
 # Read your property file
 # rename with file with tidal-assertions
-read_sva upec.sva
+#read_sva upec.sva
+read_sva access_controll_wrapper_testbench.tda
 
 # We'll leave the rest for later :)

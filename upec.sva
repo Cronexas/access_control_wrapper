@@ -1,0 +1,23 @@
+module property_checker
+  (
+  input clk,
+  input rst
+  );
+
+default clocking default_clk @(posedge clk); endclocking
+
+`include "tidal.sv"
+
+`include "state_equivalence.sva"
+
+`begin_tda(ops)
+
+  sequence reset_sequence;
+    (rst == 1'b0);
+  endsequence
+
+`end_tda
+
+endmodule
+
+bind miter_top property_checker checker_bind(.clk(clk), .rst(rst));

@@ -1,0 +1,44 @@
+function automatic state_equivalence();
+state_equivalence = (
+  (U1.INTR_ENABLE_q == U2.INTR_ENABLE_q) &&
+  (U1.INTR_ENABLE_we_q == U2.INTR_ENABLE_we_q) &&
+  (U1.INTR_STATE_q == U2.INTR_STATE_q) &&
+  (U1.INTR_STATE_we_q == U2.INTR_STATE_we_q) &&
+  (U1.INTR_TEST_q == U2.INTR_TEST_q) &&
+  (U1.INTR_TEST_we_q == U2.INTR_TEST_we_q) &&
+  (U1.ack_opcode_q == U2.ack_opcode_q) &&
+  (U1.ack_outstanding_q == U2.ack_outstanding_q) &&
+  (U1.activate_cpu_err_resp_q == U2.activate_cpu_err_resp_q) &&
+  (U1.cpu_error_response.err_instr_type == U2.cpu_error_response.err_instr_type) &&
+  (U1.cpu_error_response.err_opcode == U2.cpu_error_response.err_opcode) &&
+  (U1.cpu_error_response.err_req_pending == U2.cpu_error_response.err_req_pending) &&
+  (U1.cpu_error_response.err_rsp_pending == U2.cpu_error_response.err_rsp_pending) &&
+  (U1.cpu_error_response.err_size == U2.cpu_error_response.err_size) &&
+  (U1.cpu_error_response.err_source == U2.cpu_error_response.err_source) &&
+  (U1.current_state == U2.current_state) &&
+  (U1.denied_addr_read_q == U2.denied_addr_read_q) &&
+  (U1.denied_reg_addr_q == U2.denied_reg_addr_q) &&
+  (U1.denied_reg_type_q == U2.denied_reg_type_q) &&
+  (U1.err_resp_wrapper.err_instr_type == U2.err_resp_wrapper.err_instr_type) &&
+  (U1.err_resp_wrapper.err_opcode == U2.err_resp_wrapper.err_opcode) &&
+  (U1.err_resp_wrapper.err_req_pending == U2.err_resp_wrapper.err_req_pending) &&
+  (U1.err_resp_wrapper.err_rsp_pending == U2.err_resp_wrapper.err_rsp_pending) &&
+  (U1.err_resp_wrapper.err_size == U2.err_resp_wrapper.err_size) &&
+  (U1.err_resp_wrapper.err_source == U2.err_resp_wrapper.err_source) &&
+  (U1.err_rsp_sent_q == U2.err_rsp_sent_q) &&
+  (U1.gen_pmp_csr[0].pmp_csr.rdata_q == U2.gen_pmp_csr[0].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[1].pmp_csr.rdata_q == U2.gen_pmp_csr[1].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[2].pmp_csr.rdata_q == U2.gen_pmp_csr[2].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[3].pmp_csr.rdata_q == U2.gen_pmp_csr[3].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[4].pmp_csr.rdata_q == U2.gen_pmp_csr[4].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[5].pmp_csr.rdata_q == U2.gen_pmp_csr[5].pmp_csr.rdata_q) &&
+  (U1.go_to_idle_q == U2.go_to_idle_q) &&
+  (U1.pmp_reg_err_q == U2.pmp_reg_err_q) &&
+  (U1.source_id_q == U2.source_id_q) &&
+  (U1.tl_cpu2csr_q == U2.tl_cpu2csr_q) &&
+  (U1.tl_csr2cpu_q == U2.tl_csr2cpu_q) &&
+  (U1.tl_err_rsp_device_outstanding_q == U2.tl_err_rsp_device_outstanding_q) &&
+  (U1.wr_data_csr == U2.wr_data_csr) &&
+  (U1.wr_en_csr == U2.wr_en_csr)
+);
+endfunction
