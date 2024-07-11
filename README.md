@@ -153,19 +153,19 @@ Main tasks in this part:
 - [X] DONE
 
 #### Rework wrapper_structure and add additonal structures:
-- [X] TODO
-- [ ] IN PROGRESS
+- [ ] TODO
+- [X] IN PROGRESS
 - [ ] DONE
 
 #### Implementation of TL-UL Interface for CPU:
 - [ ] TODO
-- [X] IN PROGRESS
-- [ ] DONE
+- [ ] IN PROGRESS
+- [X] DONE
 
 #### Verifying of TL-UL Interface for CPU
 - [ ] TODO
-- [X] IN PROGRESS
-- [ ] DONE
+- [ ] IN PROGRESS
+- [X] DONE
 
 #### FSM implementation regarding to specification
 - [ ] TODO
@@ -178,14 +178,14 @@ Main tasks in this part:
 - [X] DONE
 
 #### Implementation of Interrupt capability regarding to opentitan:
-- [X] TODO
+- [ ] TODO
 - [ ] IN PROGRESS
-- [ ] DONE
+- [X] DONE
   
 #### Verifying of Interrupt capability:
-- [X] TODO
+- [ ] TODO
 - [ ] IN PROGRESS
-- [ ] DONE
+- [X] DONE
 
 #### Wrapper Documentation:
 - [ ] TODO
@@ -193,8 +193,8 @@ Main tasks in this part:
 - [ ] DONE
 
 #### Writting theoretical part:
-- [X] TODO
-- [ ] IN PROGRESS
+- [ ] TODO
+- [X] IN PROGRESS
 - [ ] DONE
 
       
