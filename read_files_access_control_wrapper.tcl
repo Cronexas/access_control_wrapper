@@ -94,6 +94,10 @@ compile -golden
 # You're now ready for verification. Switch mode to MV
 set_mode mv
 
+# Setting some check options for verification with upec:
+set_check_option -approver1_steps -1 -approver2_steps 0 -approver3_steps 0 -approver4_steps 0 -disprover1_steps 0 -disprover2_steps 0 -disprover3_steps 0 -disprover4_steps 0 -disprover5_steps 0 -disprover6_steps 0 -prover1_steps 0 -prover2_steps 0 -prover3_steps 0 -local_processes $PARALLEL_CORES -prover_exec_order {{approver1:0}} -verbose
+
+
 # Read your property file
 # rename with file with tidal-assertions
 #read_sva upec.sva
