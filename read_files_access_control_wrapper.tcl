@@ -60,28 +60,23 @@ read_verilog -golden  -pragma_ignore {} packages/prim_subreg_pkg.sv
 read_verilog -golden  -pragma_ignore {} packages/prim_subreg.sv
 read_verilog -golden  -pragma_ignore {} packages/prim_subreg_arb.sv
 read_verilog -golden  -pragma_ignore {} packages/prim_subreg_ext.sv
-read_verilog -golden  -pragma_ignore {} access_control_wrapper.sv
+#read_verilog -golden  -pragma_ignore {} access_control_wrapper.sv
 #read_verilog -golden  -pragma_ignore {} packages/
 #read_verilog -golden  -pragma_ignore {} packages/
 #read_verilog -golden  -pragma_ignore {} packages/
 
 
 
-
-
-
-#read_verilog -golden  -pragma_ignore {} ip/tlul/rtl/tlul_pkg.sv
-#read_verilog -golden  -pragma_ignore {} ip/ibex/rtl/ibex_pkg.sv
 
 
 
 
 # Sometimes OneSpin can't figure out what file should be the top file. You can manually specify it like this:
 #set_elaborate_option -top !work.miter_top
-#read_verilog -golden  -pragma_ignore {} access_control_wrapper.sv
-read_verilog -golden  -pragma_ignore {} miter_top.sv
-#set_elaborate_option -top verilog!work.access_control_wrapper
-set_elaborate_option -top verilog!work.miter_top
+read_verilog -golden  -pragma_ignore {} access_control_wrapper.sv
+#read_verilog -golden  -pragma_ignore {} miter_top.sv
+set_elaborate_option -top verilog!work.access_control_wrapper
+#set_elaborate_option -top verilog!work.miter_top
 # Elaborate the design
 elaborate -golden
 
@@ -95,7 +90,7 @@ compile -golden
 set_mode mv
 
 # Setting some check options for verification with upec:
-set_check_option -approver1_steps -1 -approver2_steps 0 -approver3_steps 0 -approver4_steps 0 -disprover1_steps 0 -disprover2_steps 0 -disprover3_steps 0 -disprover4_steps 0 -disprover5_steps 0 -disprover6_steps 0 -prover1_steps 0 -prover2_steps 0 -prover3_steps 0 -local_processes $PARALLEL_CORES -prover_exec_order {{approver1:0}} -verbose
+#set_check_option -approver1_steps -1 -approver2_steps 0 -approver3_steps 0 -approver4_steps 0 -disprover1_steps 0 -disprover2_steps 0 -disprover3_steps 0 -disprover4_steps 0 -disprover5_steps 0 -disprover6_steps 0 -prover1_steps 0 -prover2_steps 0 -prover3_steps 0 -local_processes $PARALLEL_CORES -prover_exec_order {{approver1:0}} -verbose
 
 
 # Read your property file

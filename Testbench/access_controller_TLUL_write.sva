@@ -42,8 +42,40 @@ property check_pmp_inputs_after_cpu_write_cfg_full;
 	t ##1 csr_pmp_cfg[0].read == 1'b0;
 endproperty
 
+property check_pmp_inputs_after_cpu_write_address_full_generic(logic [31:0] addr, logic [31:0] data, int data_csr_index);
+	(t ##0 tl_cpu2csr.a_opcode == PutFullData or
+	t ##0 tl_cpu2csr.a_opcode == PutPartialData) and
+	t ##0 tl_cpu2csr.a_address == addr and
+	t ##0 tl_cpu2csr.a_data == data and 
+	t ##0 tl_cpu2csr.a_source == 8'h00 and
+	t ##0 tl_cpu2csr.a_valid == 1'b1 and
+	t ##0 tl_cpu2csr.a_size == 2'b10 and
+	t ##0 tl_cpu2csr.a_mask == 4'b1111 and
+	t ##0 tl_csr2cpu.a_ready == 1'b1 
+	implies
+	t ##1 rd_data_csr[data_csr_index] == data;
+endproperty
+//How the assertion looks like: 
+//a_check_pmp_inputs_after_cpu_write_address3_full:  			assert property (@(posedge clk) disable iff (rst==0) check_pmp_inputs_after_cpu_write_address3_full);
+//generate for (genvar i = $ceil(PMPNumRegions/4); i < $ceil(PMPNumRegions/4) + PMPNumRegions; i++) 
 
+//generate 
+$display("The value of TotalIbexCSR is:%d", TotalIbexCSR);
+for (genvar i = 0; i < TotalIbexCSR ; i++) 
+	begin 
+		a_check_pmp_inputs_after_cpu_write_address_full_generic : assert property (@(posedge clk) disable iff (rst==0) check_pmp_inputs_after_cpu_write_address_full_generic(32'h00000000 + i*(32'h00000004),32'b11111111111111111111111111110000,i));
+	end
+//endgenerate
 
+/*
+generate
+    for (genvar i = 1; i < 5; i++) begin : test_generic_property
+        a_check_pmp_inputs_after_cpu_write_address_full_generic : assert property (
+            check_pmp_inputs_after_cpu_write_address_full_generic(0 + i*32'h4, 32'hFFFFFFF0, i)
+        );
+    end
+endgenerate*/
+/*
 property check_pmp_inputs_after_cpu_write_address0_full;
 	(t ##0 tl_cpu2csr.a_opcode == PutFullData or
 	t ##0 tl_cpu2csr.a_opcode == PutPartialData) and
@@ -104,7 +136,7 @@ property check_pmp_inputs_after_cpu_write_address3_full;
 	t ##1 rd_data_csr[4] == 32'b11111111111111111100000000000000;
 
 endproperty
-
+*/
 property check_pmp_inputs_after_cpu_write_cfg_partial;
 	ibex_pkg::pmp_cfg_t csr_pmp_cfg_0_freeze;
 	ibex_pkg::pmp_cfg_t csr_pmp_cfg_1_freeze;
@@ -354,10 +386,10 @@ property Write_INTR_ENABLE;
 
 //Assertions for CPU->CSR TLUL Interface
 a_check_pmp_inputs_after_cpu_write_cfg_full:  				assert property (@(posedge clk) disable iff (rst==0) check_pmp_inputs_after_cpu_write_cfg_full);
-a_check_pmp_inputs_after_cpu_write_address0_full:  			assert property (@(posedge clk) disable iff (rst==0) check_pmp_inputs_after_cpu_write_address0_full);
+/*a_check_pmp_inputs_after_cpu_write_address0_full:  			assert property (@(posedge clk) disable iff (rst==0) check_pmp_inputs_after_cpu_write_address0_full);
 a_check_pmp_inputs_after_cpu_write_address1_full:  			assert property (@(posedge clk) disable iff (rst==0) check_pmp_inputs_after_cpu_write_address1_full);
 a_check_pmp_inputs_after_cpu_write_address2_full:  			assert property (@(posedge clk) disable iff (rst==0) check_pmp_inputs_after_cpu_write_address2_full);
-a_check_pmp_inputs_after_cpu_write_address3_full:  			assert property (@(posedge clk) disable iff (rst==0) check_pmp_inputs_after_cpu_write_address3_full);
+a_check_pmp_inputs_after_cpu_write_address3_full:  			assert property (@(posedge clk) disable iff (rst==0) check_pmp_inputs_after_cpu_write_address3_full);*/
 a_check_pmp_inputs_after_cpu_write_cfg_partial:				assert property (@(posedge clk) disable iff (rst==0) check_pmp_inputs_after_cpu_write_cfg_partial);
 a_check_pmp_inputs_after_cpu_write_address0_partial:			assert property (@(posedge clk) disable iff (rst==0) check_pmp_inputs_after_cpu_write_address0_partial);
 a_check_pmp_inputs_after_cpu_write_address1_partial:			assert property (@(posedge clk) disable iff (rst==0) check_pmp_inputs_after_cpu_write_address1_partial);

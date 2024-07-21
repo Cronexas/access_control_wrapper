@@ -5,8 +5,8 @@ import ibex_pkg::*;
 import access_control_wrapper_reg_pkg::*;
 //Rename to fit Filename and Modulename
 module access_control_wrapper # (
-parameter logic [23:0]		base_address = 24'b0,
-parameter int unsigned          PMPNumRegions = 4
+parameter logic [23:0]		BaseAddress = 24'b0,
+parameter logic			NumPMPEntriesSelecter = 1'b0
 ) (
 	input logic                    	rst,
 	input logic                    	clk,
@@ -22,12 +22,28 @@ parameter int unsigned          PMPNumRegions = 4
 	output tlul_pkg::tl_d2h_t     	tl_csr2cpu = '0             	//wrapper send denied address and opcode to cpu  
 );
 
+/* ADDRESS SPACE DISCUSSION
+We have either 16 or 64 address entries.
+->Either 4 or 16 Registers for config
+->Either 20 or 80 Registers (32 Bit)
+->Either 80 or 320 Byte addressable
+-> Next power of 2 is 512 Bytes.
+->2 power 9 address space.
+Starting with special addresses
+-> Rewritting of TLUL Interface
+
+*/
 //PMP parameters
+parameter int unsigned          PMPNumRegions = 16;
+parameter int unsigned 		AdjustedPMPNumRegions = (NumPMPEntriesSelecter) ? (PMPNumRegions << 2) : PMPNumRegions;
 parameter int unsigned          PMPGranularity = 0;    
 parameter int unsigned          PMPNumChan = 1;
-//parameter int unsigned          PMPNumRegions = 4;     		//n+(n/4) registers for n regions, max is 192!->192*5 (4 Bytes each address + 1Byte config)
-parameter int unsigned		NumberConfigEntries =  $ceil(PMPNumRegions/4);
-parameter int unsigned		TotalIbexCSR = PMPNumRegions + NumberConfigEntries;
+parameter int unsigned		NumberConfigEntries =  $ceil(AdjustedPMPNumRegions/4);
+parameter int unsigned		TotalIbexCSR = AdjustedPMPNumRegions + NumberConfigEntries;
+parameter int unsigned 		Number32BitRegisterNonPMP = 7;
+parameter int unsigned 		NumberBytesREgisterNonPMP = 4*Number32BitRegisterNonPMP;
+
+
 parameter int unsigned 		max_pmp_related_addr = 959;// 0 to 959 bytes->960 Bytes -> 192 32 Bit Registers (1x cfg, 4x address)
 parameter int unsigned		max_bytes_addressable = 255; //1024 addressable bytes 32 bit each addressable. We don't care about byte addressable (1:0) but we implemented it
 parameter int unsigned 		go_idle_addr = 240;
@@ -57,8 +73,8 @@ logic                    	pmp_req_err  [PMPNumChan];
 logic                    	pmp_reg_err_d  [PMPNumChan];
 logic                    	pmp_reg_err_q  [PMPNumChan];  
 //PMP cfg signals
-ibex_pkg::pmp_cfg_t      	csr_pmp_cfg   [PMPNumRegions];
-logic [33:0]            	csr_pmp_addr  [PMPNumRegions];
+ibex_pkg::pmp_cfg_t      	csr_pmp_cfg   [AdjustedPMPNumRegions];
+logic [33:0]            	csr_pmp_addr  [AdjustedPMPNumRegions];
 //size identifier of TL-UL address 
 int				number_bits_a_mask = 0;
 int				a_size_int;
@@ -66,14 +82,14 @@ int				a_size_shift_value;
 //Bytewiseaddressable pmp
 logic[2:0]			cpu_a_size;
 //Register signals
-logic [31:0]                    wr_data_csr[4:0];         		//csr signals
+logic [31:0]                    wr_data_csr[(TotalIbexCSR-1):0];         		//csr signals
 logic [31:0]			wr_data_csr_buffer;
 logic [7:0]			wr_data_csr_byte[3:0];
-logic                           wr_en_csr[TotalIbexCSR:0] = {1'b0, 1'b0, 1'b0, 1'b0, 1'b0};
-logic [31:0]                    rd_data_csr[4:0];
+logic                           wr_en_csr[(TotalIbexCSR-1):0] = '{default:1'b0};
+logic [31:0]                    rd_data_csr[(TotalIbexCSR-1):0];
 logic [31:0]			rd_data_csr_buffer;
 logic [7:0]			rd_data_csr_byte[3:0];      
-logic                           rd_error_csr[4:0];
+logic                           rd_error_csr[(TotalIbexCSR-1):0];
 logic				activate_cpu_err_resp_d = 1'b0;
 logic				activate_cpu_err_resp_q;
 logic [7:0]			a_data_split[3:0];   
@@ -141,12 +157,11 @@ for (genvar i= 0;i<=TotalIbexCSR;i++) begin : gen_pmp_csr
 	.rd_error_o(rd_error_csr[i])
 	);
 end
-
-                                                                                
+                                                                             
   ibex_pmp #(
       .PMPGranularity(PMPGranularity),
       .PMPNumChan    (PMPNumChan),
-      .PMPNumRegions (PMPNumRegions)
+      .PMPNumRegions (AdjustedPMPNumRegions)
     ) pmp_i (
       // Interface to CSRs
       .csr_pmp_cfg_i    (csr_pmp_cfg),
@@ -172,20 +187,20 @@ tlul_err_resp cpu_error_response (
 	.tl_h_i(tl_cpu2csr),
 	.tl_h_o(tl_err_rsp_cpu_outstanding)
 );
-  
-  ////////////////////////////////  --assignements
-  //Make them generic afterwards.
-  //First fix the wiring mistakes and verify them
-  //Afterwards find a scheme and implement it generic
-  assign csr_pmp_cfg[0] = {rd_data_csr[0][7],rd_data_csr[0][4:0]};
-  assign csr_pmp_cfg[1] = {rd_data_csr[0][15],rd_data_csr[0][12:8]};
-  assign csr_pmp_cfg[2] = {rd_data_csr[0][23],rd_data_csr[0][20:16]};
-  assign csr_pmp_cfg[3] = {rd_data_csr[0][31],rd_data_csr[0][28:24]};
-  assign csr_pmp_addr[0] = rd_data_csr[1];
-  assign csr_pmp_addr[1] = rd_data_csr[2];
-  assign csr_pmp_addr[2] = rd_data_csr[3];
-  assign csr_pmp_addr[3] = rd_data_csr[4];
-//assign 	tl_csr2cpu = 	tl_csr2cpu_q;
+genvar i;
+generate
+	for (i = 0; i < NumberConfigEntries; i = i + 1) begin : gen_csr_pmp_cfg
+		assign csr_pmp_cfg[i*4] = {rd_data_csr[i][7], rd_data_csr[i][4:0]};
+		assign csr_pmp_cfg[i*4 + 1] = {rd_data_csr[i][15], rd_data_csr[i][12:8]};
+		assign csr_pmp_cfg[i*4 + 2] = {rd_data_csr[i][23], rd_data_csr[i][20:16]};
+		assign csr_pmp_cfg[i*4 + 3] = {rd_data_csr[i][31], rd_data_csr[i][28:24]};
+	end
+endgenerate
+generate
+	for (i = 0; i < AdjustedPMPNumRegions; i = i + 1) begin : gen_csr_pmp_addr
+		  assign csr_pmp_addr[i] = {rd_data_csr[i+NumberConfigEntries], 2'b0 };
+	end
+endgenerate
 
 
 //Functions to support CPU Interface
@@ -243,7 +258,7 @@ tlul_err_resp cpu_error_response (
 		//For now PutFullData is implemented
 		//For Change from v0.0.9 to v0.1 we combined the PutFullData case and PutPartialData Case which uses all byte lanes. This reduces complexity.
 		//if ( (  tl_cpu2csr.a_opcode == PutFullData || tl_cpu2csr.a_opcode == PutPartialData ) && ( tl_cpu2csr.a_size == 2'b10 ) && ( tl_cpu2csr.a_mask == 4'b1111 ) ) begin  
-		if ( (  tl_cpu2csr.a_opcode == PutFullData || tl_cpu2csr.a_opcode == PutPartialData ) && ( tl_cpu2csr.a_size == 2'b10 ) && ( &tl_cpu2csr.a_mask ) && (tl_cpu2csr.a_address[31:10] == base_address[23:0]) ) begin                                                                  
+		if ( (  tl_cpu2csr.a_opcode == PutFullData || tl_cpu2csr.a_opcode == PutPartialData ) && ( tl_cpu2csr.a_size == 2'b10 ) && ( &tl_cpu2csr.a_mask ) && (tl_cpu2csr.a_address[31:10] == BaseAddress[23:0]) ) begin                                                                  
 			ack_opcode_d = AccessAck;
 			//Check if it's a entry for 
 			if ( cpu_addr_reg_abs <= ( TotalIbexCSR - 1 ) ) begin
@@ -281,7 +296,7 @@ tlul_err_resp cpu_error_response (
 			end
 		//Here we have a actual PartialData, Specification of TileLink 4.6 Byte Lanes indicates that there are no spaces between active byte lanes
 		//For now we allow it here to address with inactive bytelanes between active bytelanes
-		end else if ( ( tl_cpu2csr.a_opcode == PutPartialData ) && ( ( tl_cpu2csr.a_size < 2'b10 ) ) && ( number_bits_a_mask == a_size_int ) && (tl_cpu2csr.a_address[31:10] == base_address[23:0]) ) begin
+		end else if ( ( tl_cpu2csr.a_opcode == PutPartialData ) && ( ( tl_cpu2csr.a_size < 2'b10 ) ) && ( number_bits_a_mask == a_size_int ) && (tl_cpu2csr.a_address[31:10] == BaseAddress[23:0]) ) begin
 			//Check if the byte addressing is correct. If the length of the data +  start byte of the data exceeds max bytes supported, we return an error.
 			ack_opcode_d = AccessAck;
 			//Case for checking if it's writting pmp address
@@ -327,7 +342,7 @@ tlul_err_resp cpu_error_response (
 			end
 		
 		//For this case we need to pass csr2cpu through a register, to be able to send it in the next clock cycle.
-		end else if (tl_cpu2csr.a_opcode == Get && ( number_bits_a_mask == a_size_int ) && (tl_cpu2csr.a_address[31:10] == base_address[23:0]) ) begin 
+		end else if (tl_cpu2csr.a_opcode == Get && ( number_bits_a_mask == a_size_int ) && (tl_cpu2csr.a_address[31:10] == BaseAddress[23:0]) ) begin 
 			ack_opcode_d = AccessAckData;
 			if ( cpu_addr_reg_abs <= ( TotalIbexCSR - 1 ) ) begin
 				tl_csr2cpu_d.d_data = rd_data_csr[cpu_addr_reg_abs];
@@ -388,15 +403,6 @@ tlul_err_resp cpu_error_response (
 		end
 		number_bits_a_mask = 0;
 	end
-	/*
-	end else if (!ack_outstanding_q && INTR_ENABLE_we_q) begin
-		INTR_ENABLE_we_d = 1'b0;
-	end else if (!ack_outstanding_q && INTR_STATE_we_q) begin
-		INTR_STATE_we_d = 1'b0;
-	end else if (!ack_outstanding_q && INTR_TEST_we_q) begin
-		INTR_TEST_we_d = 1'b0;
-	end
-	*//**/
 	if (!INTR_ENABLE_we_d) begin
 		INTR_ENABLE_d = INTR_ENABLE_q;
 	end
@@ -527,7 +533,7 @@ end
 			//Check if access from host to pmp is a valid message and the device is ready 
 			//if (tl_h2pmp.a_valid && tl_d2pmp.a_ready) begin 
 			if (tl_h2pmp.a_valid && tl_d2pmp.a_ready) begin 
-				pmp_req_addr [0] = tl_h2pmp.a_address;
+				pmp_req_addr [0] = {tl_h2pmp.a_address,2'b0};
 			
 				if (tl_h2pmp.a_opcode == 3'h0 || tl_h2pmp.a_opcode == 3'h1) begin
 					pmp_req_type [0] = PMP_ACC_WRITE;  			

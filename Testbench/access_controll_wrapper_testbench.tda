@@ -3,10 +3,25 @@
 //Imports necessary for dataclasses
 import tlul_pkg::*;
 import ibex_pkg::*;
-//Parameters
+
+
+
+
+module ACW_property_suite(rst,clk,irq_q,tl_h2pmp, tl_pmp2h,tl_d2pmp,tl_pmp2d,tl_cpu2csr, tl_csr2cpu,csr_pmp_cfg,current_state,wr_en_csr, rd_data_csr, activate_cpu_err_resp_q, 
+ack_outstanding_q,pmp_req_err, err_rsp_sent_q, go_to_idle_q, go_to_idle_d, cpu_addr_rel, irq_d, tl_err_rsp_device_outstanding, number_bits_a_mask, a_size_int, activate_cpu_err_resp_d,
+denied_reg_addr_q, ack_outstanding_d, denied_reg_type_q, intr_from_prim_hw_intr, INTR_STATE_q, INTR_ENABLE_q ,INTR_TEST_q, INTR_ENABLE_d, INTR_STATE_d, INTR_TEST_d, next_state, 
+pmp_req_addr, pmp_req_type
+);
+
+//Parameters aa
 parameter int unsigned          PMPGranularity = 0;    
 parameter int unsigned          PMPNumChan = 1;
-parameter int unsigned          PMPNumRegions = 4;
+parameter int unsigned          PMPNumRegions = 16;
+parameter logic			NumPMPEntriesSelecterTB = 1'b1;
+parameter logic[23:0]		BaseAddressTB = 24'b0;
+parameter int unsigned 		AdjustedPMPNumRegions = (NumPMPEntriesSelecterTB) ? (PMPNumRegions << 2) : PMPNumRegions;
+parameter int unsigned		NumberConfigEntries =  $ceil(AdjustedPMPNumRegions/4);
+parameter int unsigned		TotalIbexCSR = AdjustedPMPNumRegions + NumberConfigEntries;
 parameter logic[1:0] 		idle = 2'b00;
 parameter logic[1:0]		block_start = 2'b01;
 parameter logic[1:0]		block_idle = 2'b10;
@@ -17,13 +32,12 @@ parameter int unsigned 		return_denied_reg_addr = 194;
 parameter int unsigned 		return_denied_reg_type = 195;
 parameter int unsigned 		return_current_state = 196;
 //parameter enum logic {idle = 1'b0, block = 1'b1};  
+$display("The value of NumPMPEntriesSelecter is:%b", NumPMPEntriesSelecterTB);
+$display("The value of AdjustedPMPNumRegions is:%d", AdjustedPMPNumRegions);
 
 
-module ACW_property_suite(rst,clk,irq_q,tl_h2pmp, tl_pmp2h,tl_d2pmp,tl_pmp2d,tl_cpu2csr, tl_csr2cpu,csr_pmp_cfg,current_state,wr_en_csr, rd_data_csr, activate_cpu_err_resp_q, 
-ack_outstanding_q,pmp_req_err, err_rsp_sent_q, go_to_idle_q, go_to_idle_d, cpu_addr_rel, irq_d, tl_err_rsp_device_outstanding, number_bits_a_mask, a_size_int, activate_cpu_err_resp_d,
-denied_reg_addr_q, ack_outstanding_d, denied_reg_type_q, intr_from_prim_hw_intr, INTR_STATE_q, INTR_ENABLE_q ,INTR_TEST_q, INTR_ENABLE_d, INTR_STATE_d, INTR_TEST_d, next_state, 
-pmp_req_addr, pmp_req_type
-);
+
+
 //All IO of module access_control_wrapper.sv
 input logic 				rst;
 input logic 				clk;
@@ -40,7 +54,7 @@ input tlul_pkg::tl_d2h_t		tl_err_rsp_device_outstanding;
 input ibex_pkg::pmp_cfg_t		csr_pmp_cfg [PMPNumRegions];
 input logic[1:0]			current_state;
 input logic[1:0]			next_state;
-input logic				wr_en_csr[4:0];
+input logic				wr_en_csr[(TotalIbexCSR-1):0];
 input logic 				activate_cpu_err_resp_q;
 input logic 				activate_cpu_err_resp_d;
 input logic 				ack_outstanding_q;
@@ -48,7 +62,7 @@ input logic 				pmp_req_err [PMPNumChan];
 input logic 				err_rsp_sent_q;
 input logic 				go_to_idle_q;
 input logic 				go_to_idle_d;
-input logic [31:0]			rd_data_csr[4:0];
+input logic [31:0]			rd_data_csr[(TotalIbexCSR - 1):0];
 input logic [31:0]			denied_reg_addr_q;
 input logic [28:0]  			cpu_addr_rel;
 input int				number_bits_a_mask;
@@ -67,8 +81,6 @@ input ibex_pkg::pmp_req_e  		pmp_req_type [PMPNumChan];
 //input logic 				pmp_reg_err_q;
 //input logic 				pmp_reg_err_d;
 //{} 
-
-
 
 
 //For Discussion:
@@ -215,7 +227,7 @@ input ibex_pkg::pmp_req_e  		pmp_req_type [PMPNumChan];
 		t ##0 cpu_addr_rel ==  '0
 		implies
 		t ##0 irq_d == 1'b1 and
-		t ##1 intr_from_prim_hw_intr == 1'b1;
+		t ##1 intr_from_prim_hw_intr == 1'b1;NumPMPEntriesSelecter
 	endproperty
 */
 	
@@ -230,9 +242,10 @@ a_INTR_ENABLE_holding_test:						assert property (@(posedge clk) disable iff (rs
 
 
 
+
 `end_tda
 //Immidiate Assertions
 `include  "access_controller_internal_signal_assertions.sva"
 endmodule
 
-bind access_control_wrapper ACW_property_suite inst_ACW_property_suite(.*);
+bind access_control_wrapper ACW_property_suite #(.BaseAddressTB(BaseAddress), .NumPMPEntriesSelecterTB(NumPMPEntriesSelecter)) inst_ACW_property_suite(.*);
