@@ -196,7 +196,30 @@ Main tasks in this part:
 - [ ] TODO
 - [X] IN PROGRESS
 - [ ] DONE
-
+    #### Writting Introduction part:
+    - [ ] TODO
+    - [X] IN PROGRESS
+    - [ ] DONE
+    #### Writting Root of Trust part:
+    - [X] TODO
+    - [ ] IN PROGRESS
+    - [ ] DONE
+    #### Writting Access Control Wrapper part:
+    - [ ] TODO
+    - [X] IN PROGRESS
+    - [ ] DONE
+    #### Writting Verification part:
+    - [ ] TODO
+    - [X] IN PROGRESS
+    - [ ] DONE
+    #### Writting Results part:
+    - [X] TODO
+    - [ ] IN PROGRESS
+    - [ ] DONE
+    #### Writting Summary and Prospects part:
+    - [X] TODO
+    - [ ] IN PROGRESS
+    - [ ] DONE
       
 <p align="right">(<a href="#top">back to top</a>)</p>
 <!-- CONTACT -->
