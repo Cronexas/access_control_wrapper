@@ -9,12 +9,129 @@ default clocking default_clk @(posedge clk); endclocking
 `include "tidal.sv"
 
 `include "state_equivalence.sva"
+sequence U1_pmp2d_defined_all_except_valid_and_ready;
+	//Opcode 0 := PutFullData; 1 := PutPartialData; 4 := Get (Host -> Device)
+	//Opcode 0 := AccessAck(Put); 1 := AccessAckData (Get)  (Device -> Host)
+	//Pmp2d is of type Host ->Device
+	( U1.tl_pmp2d.a_opcode == 3'b000 or
+	 U1.tl_pmp2d.a_opcode == 3'b001 or
+	 U1.tl_pmp2d.a_opcode == 3'b100)  and
+	( U1.tl_pmp2d.a_param == 3'b000) and
+	( U1.tl_pmp2d.a_size == 2'b00 or
+	 U1.tl_pmp2d.a_size == 2'b01 or
+	 U1.tl_pmp2d.a_size == 2'b10)  and
+	( U1.tl_pmp2d.a_address >= 32'b0)  and
+	( U1.tl_pmp2d.a_mask == 4'b0000 or
+	 U1.tl_pmp2d.a_mask == 4'b0001 or
+	 U1.tl_pmp2d.a_mask == 4'b0010 or
+	 U1.tl_pmp2d.a_mask == 4'b0100 or
+	 U1.tl_pmp2d.a_mask == 4'b1000 or
+	 U1.tl_pmp2d.a_mask == 4'b0011 or
+	 U1.tl_pmp2d.a_mask == 4'b0110 or
+	 U1.tl_pmp2d.a_mask == 4'b1100 or
+	 U1.tl_pmp2d.a_mask == 4'b1111)  and
+	( U1.tl_pmp2d.a_data >= 32'b0) and
+	( U1.tl_pmp2d.a_user >= '0);
+	// tl_pmp2d.d_error == tl_d2pmp.d_error;
+endsequence
+
+sequence U2_pmp2d_defined_all_except_valid_and_ready;
+
+
+	//Opcode 0 := PutFullData; 1 := PutPartialData; 4 := Get (Host -> Device)
+	//Opcode 0 := AccessAck(Put); 1 := AccessAckData (Get)  (Device -> Host)
+	//Pmp2d is of type Host ->Device
+	( U2.tl_pmp2d.a_opcode == 3'b000 or
+	 U2.tl_pmp2d.a_opcode == 3'b001 or
+	 U2.tl_pmp2d.a_opcode == 3'b100)  and
+	( U2.tl_pmp2d.a_param == 3'b000) and
+	( U2.tl_pmp2d.a_size == 2'b00 or
+	 U2.tl_pmp2d.a_size == 2'b01 or
+	 U2.tl_pmp2d.a_size == 2'b10)  and
+	( U2.tl_pmp2d.a_address >= 32'b0)  and
+	( U2.tl_pmp2d.a_mask == 4'b0000 or
+	 U2.tl_pmp2d.a_mask == 4'b0001 or
+	 U2.tl_pmp2d.a_mask == 4'b0010 or
+	 U2.tl_pmp2d.a_mask == 4'b0100 or
+	 U2.tl_pmp2d.a_mask == 4'b1000 or
+	 U2.tl_pmp2d.a_mask == 4'b0011 or
+	 U2.tl_pmp2d.a_mask == 4'b0110 or
+	 U2.tl_pmp2d.a_mask == 4'b1100 or
+	 U2.tl_pmp2d.a_mask == 4'b1111)  and
+	( U2.tl_pmp2d.a_data >= 32'b0) and
+	( U2.tl_pmp2d.a_user >= '0);
+	// tl_pmp2d.d_error == tl_d2pmp.d_error;
+endsequence
+
+
+
+sequence master_sends_illegal_messages;
+	U1.pmp_req_err[0] == 1'b1 &&
+	U2.pmp_req_err[0] == 1'b1;
+endsequence
+
+sequence no_go_to_idle;
+	U1.go_to_idle_d == 0'b0 &&
+	U2.go_to_idle_d == 0'b0;
+endsequence
+
+/*
+sequence master_recieves_error_to_illegal_message;
+	U1.tl_err_rsp_device_outstanding == 
+	U2.tl_err_rsp_device_outstanding
+endsequence
+*/
+function automatic input_equivalence();
+    input_equivalence = (
+        (U1.clk == U2.clk) &&
+        (U1.rst == U2.rst) &&
+        (U1.tl_cpu2csr == U2.tl_cpu2csr) &&
+        (U1.tl_d2pmp == U2.tl_d2pmp) &&
+	//Added this signal, to because we expect the host the be ready again to be able to know he recivied the err response
+	//
+        (U1.tl_h2pmp.d_ready == U2.tl_h2pmp.d_ready) &&
+        (U1.tl_h2pmp.a_valid == U2.tl_h2pmp.a_valid) //&&
+        //U1.tl_h2pmp == U2.tl_h2pmp
+        );
+endfunction
+
+function automatic output_equivalence();
+    output_equivalence = (
+        U1.irq_q == U2.irq_q &&
+        U1.tl_csr2cpu.d_valid == U2.tl_csr2cpu.d_valid &&
+	U1.tl_csr2cpu.a_ready == U2.tl_csr2cpu.a_ready &&
+        U1.tl_pmp2d == U2.tl_pmp2d 
+
+
+	//Not sure about uncommenting this part//&&
+        //U1.tl_pmp2h == U2.tl_pmp2h
+    );
+endfunction
 
 `begin_tda(ops)
 
-  sequence reset_sequence;
-    (rst == 1'b0);
-  endsequence
+// In general, you shouldn't make assumptions on outputs, only on states and inputs
+  property upec_dummy;
+//	t ## 0 U1_pmp2d_defined_all_except_valid_and_ready and
+//	t ## 0 U2_pmp2d_defined_all_except_valid_and_ready and
+	t ## 0 state_equivalence() and
+	t ## 0 input_equivalence() and
+	t ## 1 input_equivalence() and
+//	t ## 1 U1_pmp2d_defined_all_except_valid_and_ready and
+//	t ## 1 U2_pmp2d_defined_all_except_valid_and_ready 
+	//Discuss Dino: transition from blocking to idle should not send pmp2d = h2pmp
+	t ## 0 no_go_to_idle and
+	t ## 1 no_go_to_idle and
+	//Assume illegal messages by err of pmp
+	t ## 0 master_sends_illegal_messages and
+	t ## 1 master_sends_illegal_messages
+	implies
+	t ## 0 output_equivalence() and
+	t ## 1 output_equivalence() and
+	t ## 1 state_equivalence2();
+  endproperty
+
+assert_upec_dummy: assert property (upec_dummy);
 
 `end_tda
 

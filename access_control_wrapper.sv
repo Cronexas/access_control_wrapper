@@ -33,19 +33,8 @@ Starting with special addresses
 -> Rewritting of TLUL Interface
 
 */
-//PMP parameters
-parameter int unsigned          PMPNumRegions = 16;
-parameter int unsigned 		AdjustedPMPNumRegions = (NumPMPEntriesSelecter) ? (PMPNumRegions << 2) : PMPNumRegions;
-parameter int unsigned          PMPGranularity = 0;    
-parameter int unsigned          PMPNumChan = 1;
-parameter int unsigned		NumberConfigEntries =  $ceil(AdjustedPMPNumRegions/4);
-parameter int unsigned		TotalIbexCSR = AdjustedPMPNumRegions + NumberConfigEntries;
-parameter int unsigned 		Number32BitRegisterNonPMP = 7;
-parameter int unsigned 		NumberBytesREgisterNonPMP = 4*Number32BitRegisterNonPMP;
-
-
-parameter int unsigned 		max_pmp_related_addr = 959;// 0 to 959 bytes->960 Bytes -> 192 32 Bit Registers (1x cfg, 4x address)
-parameter int unsigned		max_bytes_addressable = 255; //1024 addressable bytes 32 bit each addressable. We don't care about byte addressable (1:0) but we implemented it
+//Old address range
+/*
 parameter int unsigned 		go_idle_addr = 240;
 parameter int unsigned 		return_denied_reg_addr = 241;
 parameter int unsigned 		return_denied_reg_type = 242;
@@ -53,6 +42,30 @@ parameter int unsigned 		return_current_state = 243;
 parameter int unsigned 		INTR_STATE_address = 244;
 parameter int unsigned		INTR_ENABLE_address = 245;
 parameter int unsigned		INTR_TEST_address = 246;
+*/
+//New address range
+parameter int unsigned 		Number32BitRegisterNonPMP = 7;
+parameter int unsigned 		NumberBytesRegisterNonPMP = 4*Number32BitRegisterNonPMP;
+parameter int unsigned 		go_idle_addr = 0;
+parameter int unsigned 		return_denied_reg_addr = 1;
+parameter int unsigned 		return_denied_reg_type = 2;
+parameter int unsigned 		return_current_state = 3;
+parameter int unsigned 		INTR_STATE_address = 4;
+parameter int unsigned		INTR_ENABLE_address = 5;
+parameter int unsigned		INTR_TEST_address = 6;
+
+//PMP parameters
+parameter int unsigned          PMPNumRegions = 16;
+parameter int unsigned 		AdjustedPMPNumRegions = (NumPMPEntriesSelecter) ? (PMPNumRegions << 2) : PMPNumRegions;
+parameter int unsigned          PMPGranularity = 0;    
+parameter int unsigned          PMPNumChan = 1;
+parameter int unsigned		NumberConfigEntries =  $ceil(AdjustedPMPNumRegions/4);
+parameter int unsigned		TotalIbexCSR = AdjustedPMPNumRegions + NumberConfigEntries;
+
+
+
+parameter int unsigned 		max_pmp_related_addr = 959;// 0 to 959 bytes->960 Bytes -> 192 32 Bit Registers (1x cfg, 4x address)
+parameter int unsigned		max_bytes_addressable = 255; //1024 addressable bytes 32 bit each addressable. We don't care about byte addressable (1:0) but we implemented it
 tlul_pkg::tl_d2h_t              tl_err_rsp_device_outstanding;
 tlul_pkg::tl_d2h_t              tl_err_rsp_device_outstanding_q; 
 tlul_pkg::tl_d2h_t              tl_err_rsp_device_outstanding_d;   
@@ -70,8 +83,8 @@ ibex_pkg::priv_lvl_e            priv_mode [PMPNumChan] = {2'b00}; 	//user mode
 logic [33:0]             	pmp_req_addr [PMPNumChan];     
 ibex_pkg::pmp_req_e  		pmp_req_type [PMPNumChan];
 logic                    	pmp_req_err  [PMPNumChan];
-logic                    	pmp_reg_err_d  [PMPNumChan];
-logic                    	pmp_reg_err_q  [PMPNumChan];  
+//logic                    	pmp_reg_err_d  [PMPNumChan];
+//logic                    	pmp_reg_err_q  [PMPNumChan];  
 //PMP cfg signals
 ibex_pkg::pmp_cfg_t      	csr_pmp_cfg   [AdjustedPMPNumRegions];
 logic [33:0]            	csr_pmp_addr  [AdjustedPMPNumRegions];
@@ -93,8 +106,7 @@ logic                           rd_error_csr[(TotalIbexCSR-1):0];
 logic				activate_cpu_err_resp_d = 1'b0;
 logic				activate_cpu_err_resp_q;
 logic [7:0]			a_data_split[3:0];   
-logic [7:0]			d_data_split[3:0];   
-logic [28:0]                    cpu_addr_rel;
+logic [7:0]			d_data_split[3:0];
 int 				constant_one = 1;
 int unsigned			cpu_addr_reg_abs;
 logic                           irq_d = 1'b0;
@@ -137,6 +149,8 @@ logic				INTR_TEST_we_d= 1'b0;
 logic				INTR_STATE_we_q= 1'b0;
 logic				INTR_ENABLE_we_q= 1'b0;
 logic				INTR_TEST_we_q= 1'b0;
+
+logic				wrong_tlul_opcode = 1'b0;
 
 tl_d_op_e                       ack_opcode_d;
 tl_d_op_e                       ack_opcode_q;
@@ -234,7 +248,8 @@ endgenerate
  always_comb begin
 	irq_q = INTR_STATE_q & INTR_ENABLE_q;
 	tl_csr2cpu.a_ready = !ack_outstanding_q & !activate_cpu_err_resp_q;
-	//if (!ack_outstanding_q) begin
+	//This might fix UPEC error
+	//tl_csr2cpu = '0;
 	tl_csr2cpu.d_valid = 1'b0;
 	ack_outstanding_d = 1'b0;
 	INTR_ENABLE_we_d = 1'b0;
@@ -242,11 +257,10 @@ endgenerate
 	INTR_TEST_we_d = 1'b0;
 	go_to_idle_d = 1'b0;
 	activate_cpu_err_resp_d = 1'b0;
+	wr_data_csr = '0;
 	if (tl_cpu2csr.a_valid && tl_csr2cpu.a_ready) begin
 		tl_cpu2csr_d = tl_cpu2csr;
 		source_id_d = tl_cpu2csr.a_source;
-		//cpu address relative to base address of 
-		cpu_addr_rel = tl_cpu2csr.a_address[28:0];
 		//Address of config register, relative to base address of ibex csr, relative here is also absolute
 		number_bits_a_mask = $countones(tl_cpu2csr.a_mask);
 		//absolute address in ibex csr it's byte addressable, but we direct addressing of bytes is not supported. therefor using masking bits and PartialData
@@ -261,11 +275,7 @@ endgenerate
 		if ( (  tl_cpu2csr.a_opcode == PutFullData || tl_cpu2csr.a_opcode == PutPartialData ) && ( tl_cpu2csr.a_size == 2'b10 ) && ( &tl_cpu2csr.a_mask ) && (tl_cpu2csr.a_address[31:10] == BaseAddress[23:0]) ) begin                                                                  
 			ack_opcode_d = AccessAck;
 			//Check if it's a entry for 
-			if ( cpu_addr_reg_abs <= ( TotalIbexCSR - 1 ) ) begin
-				wr_data_csr[cpu_addr_reg_abs] = tl_cpu2csr.a_data;
-				wr_en_csr[cpu_addr_reg_abs] = 1'b1;
-				ack_outstanding_d = 1'b1;
-			end else if ( cpu_addr_reg_abs < max_bytes_addressable ) begin
+			if ( cpu_addr_reg_abs < Number32BitRegisterNonPMP) begin
 					case (cpu_addr_reg_abs)
 					
 					go_idle_addr :     			begin                       	
@@ -291,6 +301,10 @@ endgenerate
 											activate_cpu_err_resp_d = 1'b1;
 										end 
 					endcase
+			end else if ( cpu_addr_reg_abs < (Number32BitRegisterNonPMP + TotalIbexCSR) ) begin
+				wr_data_csr[cpu_addr_reg_abs - Number32BitRegisterNonPMP] = tl_cpu2csr.a_data;
+				wr_en_csr[cpu_addr_reg_abs - Number32BitRegisterNonPMP] = 1'b1;
+				ack_outstanding_d = 1'b1;
 			end else begin
 				activate_cpu_err_resp_d = 1'b1;
 			end
@@ -299,18 +313,7 @@ endgenerate
 		end else if ( ( tl_cpu2csr.a_opcode == PutPartialData ) && ( ( tl_cpu2csr.a_size < 2'b10 ) ) && ( number_bits_a_mask == a_size_int ) && (tl_cpu2csr.a_address[31:10] == BaseAddress[23:0]) ) begin
 			//Check if the byte addressing is correct. If the length of the data +  start byte of the data exceeds max bytes supported, we return an error.
 			ack_opcode_d = AccessAck;
-			//Case for checking if it's writting pmp address
-			//For PartialData we care about [30:29] (Byte-Offset) for FullData we don't care
-			if ( cpu_addr_reg_abs <= ( TotalIbexCSR - 1 ) ) begin
-				rd_data_csr_buffer = rd_data_csr[cpu_addr_reg_abs];
-				for (int i = 0; i <= 3; i++) begin      		//set write enables to 0 after every op
-					wr_data_csr_byte[i] = tl_cpu2csr.a_mask[i] ? tl_cpu2csr.a_data[(8*i+7):(8*i)] : rd_data_csr_buffer[(8*i+7):(8*i)];
-				end
-
-				wr_data_csr[cpu_addr_reg_abs] = {wr_data_csr_byte[3],wr_data_csr_byte[2],wr_data_csr_byte[1],wr_data_csr_byte[0]};
-				wr_en_csr[cpu_addr_reg_abs] = 1'b1;
-				ack_outstanding_d = 1'b1;
-			end else if ( cpu_addr_reg_abs < max_bytes_addressable )begin
+			if ( cpu_addr_reg_abs < Number32BitRegisterNonPMP )begin
 				case (cpu_addr_reg_abs)
 					
 					go_idle_addr :     begin                       			//addr 0, 4 cfg registers
@@ -318,7 +321,7 @@ endgenerate
 											ack_outstanding_d = 1'b1;
 										end
 					INTR_STATE_address : begin
-											//INTR_STATE_d = 1'b0;
+											INTR_STATE_d = 1'b0;
 											INTR_STATE_we_d = 1'b1;
 											ack_outstanding_d = 1'b1;
 										end
@@ -337,6 +340,15 @@ endgenerate
 											activate_cpu_err_resp_d = 1'b1;
 										end 
 				endcase
+			end else if ( cpu_addr_reg_abs < (Number32BitRegisterNonPMP + TotalIbexCSR) ) begin
+				rd_data_csr_buffer = rd_data_csr[cpu_addr_reg_abs - Number32BitRegisterNonPMP];
+				for (int i = 0; i <= 3; i++) begin      		//set write enables to 0 after every op
+					wr_data_csr_byte[i] = tl_cpu2csr.a_mask[i] ? tl_cpu2csr.a_data[(8*i+7):(8*i)] : rd_data_csr_buffer[(8*i+7):(8*i)];
+				end
+
+				wr_data_csr[cpu_addr_reg_abs - Number32BitRegisterNonPMP] = {wr_data_csr_byte[3],wr_data_csr_byte[2],wr_data_csr_byte[1],wr_data_csr_byte[0]};
+				wr_en_csr[cpu_addr_reg_abs - Number32BitRegisterNonPMP] = 1'b1;
+				ack_outstanding_d = 1'b1;
 			end else begin
 				activate_cpu_err_resp_d = 1'b1;
 			end
@@ -344,10 +356,7 @@ endgenerate
 		//For this case we need to pass csr2cpu through a register, to be able to send it in the next clock cycle.
 		end else if (tl_cpu2csr.a_opcode == Get && ( number_bits_a_mask == a_size_int ) && (tl_cpu2csr.a_address[31:10] == BaseAddress[23:0]) ) begin 
 			ack_opcode_d = AccessAckData;
-			if ( cpu_addr_reg_abs <= ( TotalIbexCSR - 1 ) ) begin
-				tl_csr2cpu_d.d_data = rd_data_csr[cpu_addr_reg_abs];
-				ack_outstanding_d = 1'b1;
-			end else if ( cpu_addr_reg_abs < max_bytes_addressable ) begin
+			if ( cpu_addr_reg_abs < Number32BitRegisterNonPMP ) begin
 				case (cpu_addr_reg_abs)
 				//29'b00000000000000000000000010100 :     begin                       			//addr 0, 4 cfg registers
 				return_denied_reg_addr : begin
@@ -382,6 +391,9 @@ endgenerate
 										activate_cpu_err_resp_d = 1'b1;
 									end 
 				endcase
+			end else if ( cpu_addr_reg_abs < ( Number32BitRegisterNonPMP + TotalIbexCSR) ) begin
+				tl_csr2cpu_d.d_data = rd_data_csr[cpu_addr_reg_abs - Number32BitRegisterNonPMP];
+				ack_outstanding_d = 1'b1;
 			end else begin
 				//if tl_cpu2csr.a_addres[31] == False we know that it's 00 (wrapper related ) or 11 (pmp config related)
 				//tl_csr2cpu = tl_err_rsp_cpu_outstanding;
@@ -460,7 +472,7 @@ logic denied_req_type_read_d, denied_req_type_read_q;
     if (!rst) begin                    
 	source_id_q <= 0;
 	err_rsp_sent_q <= 0;
-	//irq_q <= 0;
+	ack_opcode_q <= 0;
 	ack_outstanding_q <= 0;
 	denied_reg_addr_q <= 0;
 	denied_reg_type_q <= 0;
@@ -470,7 +482,7 @@ logic denied_req_type_read_d, denied_req_type_read_q;
 	wr_en_csr <= {1'b0, 1'b0, 1'b0, 1'b0, 1'b0};
 	activate_cpu_err_resp_q <= 1'b0;
 	tl_csr2cpu_q <= '0;//VHDL syntax (others => '0') (all 0)
-	pmp_reg_err_q <= 1'b0;
+	//pmp_reg_err_q <= 1'b0;
 	tl_err_rsp_device_outstanding_q <= '0;
 	INTR_STATE_q <= 1'b0;
 	INTR_ENABLE_q <= 1'b0;
@@ -482,8 +494,7 @@ logic denied_req_type_read_d, denied_req_type_read_q;
     end else begin
 	ack_opcode_q <= ack_opcode_d;
 	source_id_q <= source_id_d;
-	err_rsp_sent_q <= err_rsp_sent_d;
-	//irq_q <= irq_d;   
+	err_rsp_sent_q <= err_rsp_sent_d;  
 	ack_outstanding_q <= ack_outstanding_d;
 	denied_reg_addr_q <= denied_reg_addr_d;
 	denied_reg_type_q <= denied_reg_type_d;
@@ -492,7 +503,7 @@ logic denied_req_type_read_d, denied_req_type_read_q;
 	//denied_reg_type_q <= denied_reg_type_d;
 	tl_csr2cpu_q <= tl_csr2cpu_d;
 	activate_cpu_err_resp_q <= activate_cpu_err_resp_d;
-	pmp_reg_err_q[0] <= pmp_reg_err_d[0];
+	//pmp_reg_err_q[0] <= pmp_reg_err_d[0];
 	//tl_err_rsp_device_outstanding_q <= tl_err_rsp_device_outstanding_d;
 	tl_cpu2csr_q <= tl_cpu2csr_d;
 	INTR_STATE_q <= INTR_STATE_d;
@@ -520,34 +531,35 @@ end
   
   always_comb begin
 	irq_d = 1'b0;
-	
+	wrong_tlul_opcode = 1'b0;
+	tl_pmp2d ='0;
+	if (tl_h2pmp.a_opcode == 3'h0 || tl_h2pmp.a_opcode == 3'h1) begin
+		pmp_req_type [0] = PMP_ACC_WRITE;  			
+	end else if (tl_h2pmp.a_opcode == 3'h4) begin
+		pmp_req_type [0] = PMP_ACC_READ; 			
+	end else begin
+		wrong_tlul_opcode = 1'b1;
+		//That might be exec or write, but ibex_pmp requires it to be set to any value.
+		// to avoid pmp_req_err to become X, we define it as EXEC here.
+		pmp_req_type [0] = PMP_ACC_EXEC;
+	end
     case(current_state)                  
               
       idle :	begin
 			next_state = idle;
-			tl_pmp2d.d_ready = tl_h2pmp.d_ready;             
+			//tl_pmp2d.d_ready = tl_h2pmp.d_ready;             
 			tl_pmp2h = tl_d2pmp;
-			//pmp_reg_err_d = 1'b0;                              
-			//tl_pmp2d.a_valid = 1'b0;  
-			//irq_d = 1'b0;
-			//Check if access from host to pmp is a valid message and the device is ready 
-			//if (tl_h2pmp.a_valid && tl_d2pmp.a_ready) begin 
 			if (tl_h2pmp.a_valid && tl_d2pmp.a_ready) begin 
 				pmp_req_addr [0] = {tl_h2pmp.a_address,2'b0};
 			
-				if (tl_h2pmp.a_opcode == 3'h0 || tl_h2pmp.a_opcode == 3'h1) begin
-					pmp_req_type [0] = PMP_ACC_WRITE;  			
-				end else if (tl_h2pmp.a_opcode == 3'h4) begin
-					pmp_req_type [0] = PMP_ACC_READ; 			
-				end
-				if (pmp_req_err[0]) begin                                            
+				
+				if (pmp_req_err[0] || wrong_tlul_opcode) begin                                            
 					next_state = block_start;
 					tl_pmp2d.a_valid = 1'b0;
 					denied_reg_addr_d = tl_h2pmp.a_address;
 					denied_reg_type_d = tl_h2pmp.a_opcode;
-					//go_to_idle_d = 1'b0;
 					irq_d = 1'b1;
-					pmp_reg_err_d[0] =1'b1;
+					//pmp_reg_err_d[0] =1'b1;
 				end else begin 
 					//if () begin
 					tl_pmp2d = tl_h2pmp;
@@ -561,78 +573,35 @@ end
 		begin
 			//tl_pmp2d.a_valid = 1'b0;
 			//Next step is to get rid off pmp_reg_err_q
-			
+			/*
 			if(pmp_reg_err_q[0]) begin
 				pmp_reg_err_d[0] =1'b0;
 				tl_err_rsp_device_outstanding_d = tl_err_rsp_device_outstanding;
 			end else begin
 				tl_err_rsp_device_outstanding_d = tl_err_rsp_device_outstanding_q;
 			end
+			*/
 			// For now we keep this if construct.
 			//For later we consider adding an additional internal signal pmp_reg_err_mux_q
 			//this signal represents the output of a multiplexer, which desides between tl_err_rsp_device_outstanding(_q)
+			tl_pmp2h.d_opcode = tl_err_rsp_device_outstanding.d_opcode;
+			tl_pmp2h.d_param = tl_err_rsp_device_outstanding.d_param ;
+			tl_pmp2h.d_size = tl_err_rsp_device_outstanding.d_size;
+			tl_pmp2h.d_source = tl_err_rsp_device_outstanding.d_source;
+			tl_pmp2h.d_sink = tl_err_rsp_device_outstanding.d_sink;
+			tl_pmp2h.d_data = tl_err_rsp_device_outstanding.d_data ;
+			tl_pmp2h.d_user = tl_err_rsp_device_outstanding.d_user;
+			tl_pmp2h.d_error = tl_err_rsp_device_outstanding.d_error;
+			tl_pmp2h.d_valid = 1'b1;
+			tl_pmp2h.a_ready = 1'b0;
 			if (tl_h2pmp.d_ready & go_to_idle_d) begin
 				next_state = idle;
-				//tl_pmp2h = tl_err_rsp_device_outstanding;
-
-				tl_pmp2h.d_valid = 1'b1;
-
-				tl_pmp2h.d_opcode = tl_err_rsp_device_outstanding.d_opcode;
-				tl_pmp2h.d_param = tl_err_rsp_device_outstanding.d_param ;
-				tl_pmp2h.d_size = tl_err_rsp_device_outstanding.d_size;
-				tl_pmp2h.d_source = tl_err_rsp_device_outstanding.d_source;
-				tl_pmp2h.d_sink = tl_err_rsp_device_outstanding.d_sink;
-				tl_pmp2h.d_data = tl_err_rsp_device_outstanding.d_data ;
-				tl_pmp2h.d_user = tl_err_rsp_device_outstanding.d_user;
-				tl_pmp2h.d_error = tl_err_rsp_device_outstanding.d_error;
-				tl_pmp2h.a_ready = 1'b0;
 			end else if (!tl_h2pmp.d_ready & go_to_idle_d) begin
 				next_state = block_idle;
-				//tl_pmp2h = tl_err_rsp_device_outstanding;
-
-				tl_pmp2h.d_valid = 1'b1;
-
-				tl_pmp2h.d_opcode = tl_err_rsp_device_outstanding.d_opcode;
-				tl_pmp2h.d_param = tl_err_rsp_device_outstanding.d_param;
-				tl_pmp2h.d_size = tl_err_rsp_device_outstanding.d_size;
-				tl_pmp2h.d_source = tl_err_rsp_device_outstanding.d_source;
-				tl_pmp2h.d_sink = tl_err_rsp_device_outstanding.d_sink;
-				tl_pmp2h.d_data = tl_err_rsp_device_outstanding.d_data ;
-				tl_pmp2h.d_user = tl_err_rsp_device_outstanding.d_user;
-				tl_pmp2h.d_error = tl_err_rsp_device_outstanding.d_error ;
-				tl_pmp2h.a_ready = 1'b0;
 			end else if (tl_h2pmp.d_ready & !go_to_idle_d) begin
 				next_state = block_err;
-				//tl_pmp2h = tl_err_rsp_device_outstanding;
-				
-				tl_pmp2h.d_valid = 1'b1;//LOVE THE ERR RESPONSE UNIT! OVERRIDE! ..|.. (This is a hand)
-
-				tl_pmp2h.d_opcode = tl_err_rsp_device_outstanding.d_opcode;
-				tl_pmp2h.d_param = tl_err_rsp_device_outstanding.d_param;
-				tl_pmp2h.d_size = tl_err_rsp_device_outstanding.d_size;
-				tl_pmp2h.d_source = tl_err_rsp_device_outstanding.d_source;
-				tl_pmp2h.d_sink = tl_err_rsp_device_outstanding.d_sink;
-				tl_pmp2h.d_data = tl_err_rsp_device_outstanding.d_data;
-				tl_pmp2h.d_user = tl_err_rsp_device_outstanding.d_user;
-				tl_pmp2h.d_error = tl_err_rsp_device_outstanding.d_error;
-				//tl_pmp2h.a_ready = tl_err_rsp_device_outstanding.a_ready;
-				tl_pmp2h.a_ready = 1'b0;
 			end else if (!tl_h2pmp.d_ready & !go_to_idle_d) begin
-				next_state = block_start;
-				//tl_pmp2h = tl_err_rsp_device_outstanding;
-				
-				tl_pmp2h.d_valid = 1'b1;//LOVE THE ERR RESPONSE UNIT! OVERRIDE! ..|.. (This is a hand)
-
-				tl_pmp2h.d_opcode = tl_err_rsp_device_outstanding.d_opcode;
-				tl_pmp2h.d_param = tl_err_rsp_device_outstanding.d_param;
-				tl_pmp2h.d_size = tl_err_rsp_device_outstanding.d_size;
-				tl_pmp2h.d_source = tl_err_rsp_device_outstanding.d_source;
-				tl_pmp2h.d_sink = tl_err_rsp_device_outstanding.d_sink;
-				tl_pmp2h.d_data = tl_err_rsp_device_outstanding.d_data;
-				tl_pmp2h.d_user = tl_err_rsp_device_outstanding.d_user;
-				tl_pmp2h.d_error = tl_err_rsp_device_outstanding.d_error;
-				//tl_pmp2h.a_ready = tl_err_rsp_device_outstanding.a_ready;
-				tl_pmp2h.a_ready = 1'b0;
+				next_state = block_start;				
 			end
 			tl_pmp2d.a_valid = 1'b0;
 			tl_pmp2d.d_ready = 1'b0;
@@ -644,20 +613,9 @@ end
 			end else begin
 				next_state = block_idle;
 			end
-
-			//tl_err_rsp_device_outstanding_d = tl_err_rsp_device_outstanding_q;
 			tl_pmp2d.a_valid = 1'b0;
 			tl_pmp2d.d_ready = 1'b0;
 			tl_pmp2h.d_valid = 1'b1;
-			/*
-			tl_pmp2h.d_opcode = tl_err_rsp_device_outstanding_q.d_opcode;
-			tl_pmp2h.d_param = tl_err_rsp_device_outstanding_q.d_param;
-			tl_pmp2h.d_size = tl_err_rsp_device_outstanding_q.d_size;
-			tl_pmp2h.d_source = tl_err_rsp_device_outstanding_q.d_source;
-			tl_pmp2h.d_sink = tl_err_rsp_device_outstanding_q.d_sink;
-			tl_pmp2h.d_data = tl_err_rsp_device_outstanding_q.d_data;
-			tl_pmp2h.d_user = tl_err_rsp_device_outstanding_q.d_user;
-			tl_pmp2h.d_error = tl_err_rsp_device_outstanding_q.d_error;*/
 			tl_pmp2h.d_opcode = tl_err_rsp_device_outstanding.d_opcode;
 			tl_pmp2h.d_param = tl_err_rsp_device_outstanding.d_param;
 			tl_pmp2h.d_size = tl_err_rsp_device_outstanding.d_size;
@@ -666,7 +624,6 @@ end
 			tl_pmp2h.d_data = tl_err_rsp_device_outstanding.d_data;
 			tl_pmp2h.d_user = tl_err_rsp_device_outstanding.d_user;
 			tl_pmp2h.d_error = tl_err_rsp_device_outstanding.d_error;
-			//tl_pmp2h.a_ready = tl_err_rsp_device_outstanding_q.a_ready;
 			tl_pmp2h.a_ready = 1'b0;
 		end
 
@@ -685,7 +642,8 @@ end
 			if(go_to_idle_d) begin
 				next_state = idle;
 				//go_to_idle_d = 1'b0;
-				tl_pmp2d = tl_h2pmp;
+				// Dino:This might be security critical
+				//tl_pmp2d = tl_h2pmp;
 				tl_pmp2h.a_ready = tl_d2pmp.a_ready;
 			end else begin
 				next_state = block_err;

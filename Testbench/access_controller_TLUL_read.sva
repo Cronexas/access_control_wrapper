@@ -11,7 +11,7 @@ property state_get_denied_reg_addr;
 	t ##0 tl_csr2cpu.a_ready == 1'b1 and
 	t ##0 tl_cpu2csr.a_opcode == Get and
 	t ##0 number_bits_a_mask == a_size_int and
-	t ##0 tl_cpu2csr.a_address == 32'h000003C4 and 	
+	t ##0 tl_cpu2csr.a_address == 32'h00000004 and 	
 	t ##1 tl_cpu2csr.d_ready == 1'b1
 	implies
 	t ##0 ack_outstanding_d == 1'b1 and //holds
@@ -35,7 +35,7 @@ property state_get_denied_reg_type;
 	t ##0 tl_csr2cpu.a_ready == 1'b1 and
 	t ##0 tl_cpu2csr.a_opcode == Get and
 	t ##0 number_bits_a_mask == a_size_int and
-	t ##0 tl_cpu2csr.a_address == 32'h000003C8 and
+	t ##0 tl_cpu2csr.a_address == 32'h00000008 and
 	t ##1 tl_cpu2csr.d_ready == 1'b1
 	implies
 	t ##0 ack_outstanding_d == 1'b1 and //holds
@@ -58,7 +58,7 @@ property state_get_current_state;
 	t ##0 tl_csr2cpu.a_ready == 1'b1 and
 	t ##0 tl_cpu2csr.a_opcode == Get and
 	t ##0 number_bits_a_mask == a_size_int and
-	t ##0 tl_cpu2csr.a_address == 32'h000003CC and
+	t ##0 tl_cpu2csr.a_address == 32'h0000000C and
 	t ##1 tl_cpu2csr.d_ready == 1'b1
 	
 	implies
@@ -81,7 +81,7 @@ property get_INTR_STATE;
 	t ##0 tl_csr2cpu.a_ready == 1'b1 and
 	t ##0 tl_cpu2csr.a_opcode == Get and
 	t ##0 number_bits_a_mask == a_size_int and
-	t ##0 tl_cpu2csr.a_address == 32'h000003D0 and
+	t ##0 tl_cpu2csr.a_address == 32'h00000010 and
 	t ##1 tl_cpu2csr.d_ready == 1'b1
 	
 	implies
@@ -105,7 +105,7 @@ property get_INTR_ENABLE;
 	t ##0 tl_csr2cpu.a_ready == 1'b1 and
 	t ##0 tl_cpu2csr.a_opcode == Get and
 	t ##0 number_bits_a_mask == a_size_int and
-	t ##0 tl_cpu2csr.a_address == 32'h000003D4 and
+	t ##0 tl_cpu2csr.a_address == 32'h00000014 and
 	t ##1 tl_cpu2csr.d_ready == 1'b1
 	
 	implies

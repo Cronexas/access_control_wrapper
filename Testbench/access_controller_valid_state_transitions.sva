@@ -18,12 +18,9 @@ endproperty
 //For now I expect it as mandatory.
 property state_transition_1_to_2;
 	t ##0 current_state == idle and
-	//t ##0 err_rsp_sent_q == 1'b0 and
-	//t ##0 go_to_idle_q == 1'b0 and
 	t ##0 pmp_req_err[0] == 1'b1 and
 	t ##0 tl_h2pmp.a_valid == 1'b1 and
 	t ##0 tl_d2pmp.a_ready == 1'b1 and
-	t ##0 cpu_addr_rel ==  '0 and
 	t ##1 INTR_ENABLE_q == 1'b1
 	implies
 	
@@ -33,9 +30,6 @@ property state_transition_1_to_2;
 	//devices to host -> a_ready, diff from spec 
 	pmp2h_d_pass_all and
 	t ##0 tl_pmp2h.a_ready == 1'b1 and
-	//t ##1 tl_pmp2h.d_error = 1'b1 and
-	//t ##1 err_rsp_sent_q == 1'b0 and
-	//t ##1 go_to_idle_q == 1'b0 and
 	t ##0 irq_d == 1'b1 and
 	t ##1 current_state == block_start and
 	t ##1 irq_q == 1'b1;
@@ -43,16 +37,12 @@ endproperty
 
 property state_transition_2_to_2;
 	t ##0 current_state == block_start and
-	//t ##0 err_rsp_sent_q == 1'b0 and
-	//t ##0 go_to_idle_q == 1'b0 and
 	t ##0 tl_h2pmp.d_ready == 1'b0 and
 	t ##0 go_to_idle_d == 1'b0
 	//t ##0 cpu_addr_rel ==  '0
 	implies
 	//error of pmp2h is always 1 CC later (Error rsp unit behviour)
 	t ##1 current_state == block_start and //Holds
-	//t ##1 err_rsp_sent_q == 1'b0 and
-	//t ##1 go_to_idle_q == 1'b0 and
 	t ##0 tl_pmp2d.a_valid == 1'b0 and //Holds
 	t ##0 tl_pmp2d.d_ready == 1'b0 and //Holds
 	t ##0 tl_pmp2h.d_valid == 1'b1 and //Holds

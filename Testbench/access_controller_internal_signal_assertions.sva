@@ -80,8 +80,9 @@ property states_always_defined;
 endproperty	
 property pmp_req_err_always_defined;
 	 (pmp_req_err == 1'b1 or
-	 pmp_req_err == 1'b0) /*and
-	(pmp_reg_err_q == 1'b1 or
+	 pmp_req_err == 1'b0) //or
+	//pmp_req_err == 1'bX	and
+	/*(pmp_reg_err_q == 1'b1 or
 	 pmp_reg_err_q == 1'b0)*/
 endproperty
 	

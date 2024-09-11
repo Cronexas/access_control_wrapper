@@ -7,8 +7,8 @@ import ibex_pkg::*;
 
 
 
-module ACW_property_suite(rst,clk,irq_q,tl_h2pmp, tl_pmp2h,tl_d2pmp,tl_pmp2d,tl_cpu2csr, tl_csr2cpu,csr_pmp_cfg,current_state,wr_en_csr, rd_data_csr, activate_cpu_err_resp_q, 
-ack_outstanding_q,pmp_req_err, err_rsp_sent_q, go_to_idle_q, go_to_idle_d, cpu_addr_rel, irq_d, tl_err_rsp_device_outstanding, number_bits_a_mask, a_size_int, activate_cpu_err_resp_d,
+module ACW_property_suite #(BaseAddressTB,NumPMPEntriesSelecterTB) (rst,clk,irq_q,tl_h2pmp, tl_pmp2h,tl_d2pmp,tl_pmp2d,tl_cpu2csr, tl_csr2cpu,csr_pmp_cfg,current_state,wr_en_csr, rd_data_csr, activate_cpu_err_resp_q, 
+ack_outstanding_q,pmp_req_err, err_rsp_sent_q, go_to_idle_q, go_to_idle_d, irq_d, tl_err_rsp_device_outstanding, number_bits_a_mask, a_size_int, activate_cpu_err_resp_d,
 denied_reg_addr_q, ack_outstanding_d, denied_reg_type_q, intr_from_prim_hw_intr, INTR_STATE_q, INTR_ENABLE_q ,INTR_TEST_q, INTR_ENABLE_d, INTR_STATE_d, INTR_TEST_d, next_state, 
 pmp_req_addr, pmp_req_type
 );
@@ -17,8 +17,10 @@ pmp_req_addr, pmp_req_type
 parameter int unsigned          PMPGranularity = 0;    
 parameter int unsigned          PMPNumChan = 1;
 parameter int unsigned          PMPNumRegions = 16;
-parameter logic			NumPMPEntriesSelecterTB = 1'b1;
-parameter logic[23:0]		BaseAddressTB = 24'b0;
+parameter logic			NumPMPEntriesSelecterTB = 1'b1;// 
+parameter int unsigned 		Number32BitRegisterNonPMP = 7;
+parameter int unsigned 		NumberBytesRegisterNonPMP = 4*Number32BitRegisterNonPMP;
+parameter logic[23:0]		BaseAddressTB= 24'b0;// 
 parameter int unsigned 		AdjustedPMPNumRegions = (NumPMPEntriesSelecterTB) ? (PMPNumRegions << 2) : PMPNumRegions;
 parameter int unsigned		NumberConfigEntries =  $ceil(AdjustedPMPNumRegions/4);
 parameter int unsigned		TotalIbexCSR = AdjustedPMPNumRegions + NumberConfigEntries;
@@ -51,7 +53,7 @@ input tlul_pkg::tl_h2d_t      		tl_cpu2csr;
 input tlul_pkg::tl_d2h_t        	tl_csr2cpu;
 input tlul_pkg::tl_d2h_t		tl_err_rsp_device_outstanding;        
 //Add additional signals of wrapper here.
-input ibex_pkg::pmp_cfg_t		csr_pmp_cfg [PMPNumRegions];
+input ibex_pkg::pmp_cfg_t		csr_pmp_cfg [AdjustedPMPNumRegions];
 input logic[1:0]			current_state;
 input logic[1:0]			next_state;
 input logic				wr_en_csr[(TotalIbexCSR-1):0];
@@ -64,7 +66,6 @@ input logic 				go_to_idle_q;
 input logic 				go_to_idle_d;
 input logic [31:0]			rd_data_csr[(TotalIbexCSR - 1):0];
 input logic [31:0]			denied_reg_addr_q;
-input logic [28:0]  			cpu_addr_rel;
 input int				number_bits_a_mask;
 input int				a_size_int;
 input logic 				ack_outstanding_d;
@@ -186,10 +187,10 @@ input ibex_pkg::pmp_req_e  		pmp_req_type [PMPNumChan];
 		t ##0 irq_d == 1'b0 and
 		//(t ##0 tl_cpu2csr.a_opcode == PutFullData or
 		//t ##0 tl_cpu2csr.a_opcode == PutPartialData) and
-		t ##0 tl_cpu2csr.a_address != 32'h000003D0 and
-		t ##0 tl_cpu2csr.a_address != 32'h000003D1 and
-		t ##0 tl_cpu2csr.a_address != 32'h000003D2 and
-		t ##0 tl_cpu2csr.a_address != 32'h000003D3
+		t ##0 tl_cpu2csr.a_address != 32'h00000010 and
+		t ##0 tl_cpu2csr.a_address != 32'h00000011 and
+		t ##0 tl_cpu2csr.a_address != 32'h00000012 and
+		t ##0 tl_cpu2csr.a_address != 32'h00000013
 		implies
 		t ##1 INTR_STATE_q == INTR_STATE_content;
 	endproperty
@@ -199,10 +200,10 @@ input ibex_pkg::pmp_req_e  		pmp_req_type [PMPNumChan];
 		t ##0 set_freeze(INTR_ENABLE_content, INTR_ENABLE_q) and
 		//(t ##0 tl_cpu2csr.a_opcode == PutFullData or
 		//t ##0 tl_cpu2csr.a_opcode == PutPartialData) and
-		t ##0 tl_cpu2csr.a_address != 32'h000003D4 and
-		t ##0 tl_cpu2csr.a_address != 32'h000003D5 and
-		t ##0 tl_cpu2csr.a_address != 32'h000003D6 and
-		t ##0 tl_cpu2csr.a_address != 32'h000003D7
+		t ##0 tl_cpu2csr.a_address != 32'h00000014 and
+		t ##0 tl_cpu2csr.a_address != 32'h00000015 and
+		t ##0 tl_cpu2csr.a_address != 32'h00000016 and
+		t ##0 tl_cpu2csr.a_address != 32'h00000017
 		implies
 		t ##1 INTR_ENABLE_q == INTR_ENABLE_content;
 	endproperty
@@ -217,7 +218,7 @@ input ibex_pkg::pmp_req_e  		pmp_req_type [PMPNumChan];
 `include  "access_controller_invalid_state_transitions.sva"
 `include  "access_controll_wrapper_pmp_checks.sva"
 	
-//Interrupt handling
+//Interrupt handling aaaa
 /*
 	property check_opentitan_interrupt_hangling;
 		t ##0 current_state == idle and

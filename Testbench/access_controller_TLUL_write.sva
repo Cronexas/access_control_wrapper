@@ -1,12 +1,11 @@
 ////////////////////////
 ////     CPU2CSR    ////
 ////////////////////////
-
-property check_pmp_inputs_after_cpu_write_cfg_full;
+property check_pmp_inputs_after_cpu_write_cfg_full_generic(logic [31:0] addr, logic [31:0] data, int csr_index);
 	(t ##0 tl_cpu2csr.a_opcode == PutFullData or
 	t ##0 tl_cpu2csr.a_opcode == PutPartialData )and
-	t ##0 tl_cpu2csr.a_address == 32'h00000000 and
-	t ##0 tl_cpu2csr.a_data == 32'b10011111000101111000100001100000 and 
+	t ##0 tl_cpu2csr.a_address == addr and
+	t ##0 tl_cpu2csr.a_data == data and 
 	t ##0 tl_cpu2csr.a_source == 8'h00 and
 	t ##0 tl_cpu2csr.a_valid == 1'b1 and
 	t ##0 tl_cpu2csr.a_size == 2'b10 and
@@ -14,33 +13,79 @@ property check_pmp_inputs_after_cpu_write_cfg_full;
 	t ##0 tl_csr2cpu.a_ready == 1'b1
 	
 	implies 
+	// Lock/Reserved/Reserved/Mode1/Mode0/Execute/Write/Read
+	//csr_pmp_cfg is struct of ibex_pkg::pmp_cfg_t
+	// Order {cfg3,cfg2,cfg1,cfg0}
+	//Check if the cfg writting works
+	t ##0 wr_en_csr[csr_index] == 1'b1 and
+	t ##1 tl_csr2cpu.a_ready == 1'b0 and //Hold for 0 , clearify if GET and PUT at the same time are allowed.
+	t ##1 csr_pmp_cfg[csr_index*4 + 3].lock == data[31] and
+	t ##1 csr_pmp_cfg[csr_index*4 + 2].lock == data[23] and
+	t ##1 csr_pmp_cfg[csr_index*4 + 1].lock == data[15] and
+	t ##1 csr_pmp_cfg[csr_index*4].lock == data[7] and
+	t ##1 csr_pmp_cfg[csr_index*4 + 3].mode == data[28:27] and
+	t ##1 csr_pmp_cfg[csr_index*4 + 2].mode == data[20:19] and
+	t ##1 csr_pmp_cfg[csr_index*4 + 1].mode == data[12:11] and
+	t ##1 csr_pmp_cfg[csr_index*4].mode == data[4:3] and
+	t ##1 csr_pmp_cfg[csr_index*4 + 3].exec == data[26] and
+	t ##1 csr_pmp_cfg[csr_index*4 + 2].exec == data[18] and
+	t ##1 csr_pmp_cfg[csr_index*4 + 1].exec == data[10]and
+	t ##1 csr_pmp_cfg[csr_index*4].exec == data[2] and
+	t ##1 csr_pmp_cfg[csr_index*4 + 3].write == data[25] and
+	t ##1 csr_pmp_cfg[csr_index*4 + 2].write == data[17] and
+	t ##1 csr_pmp_cfg[csr_index*4 + 1].write == data[9] and
+	t ##1 csr_pmp_cfg[csr_index*4].write == data[1] and
+	t ##1 csr_pmp_cfg[csr_index*4 + 3].read == data[24] and
+	t ##1 csr_pmp_cfg[csr_index*4 + 2].read == data[16] and
+	t ##1 csr_pmp_cfg[csr_index*4 + 1].read == data[8] and
+	t ##1 csr_pmp_cfg[csr_index*4].read == data[0];
+endproperty
+for (genvar i = 0; i < NumberConfigEntries ; i++) 
+	begin 
+		a_check_pmp_inputs_after_cpu_write_cfg_full_generic : assert property (@(posedge clk) disable iff (rst==0) check_pmp_inputs_after_cpu_write_cfg_full_generic(32'h00000000 + NumberBytesRegisterNonPMP + i*(32'h00000004),32'b11111111111111111111111111110000,i));
+	end
+property check_pmp_inputs_after_cpu_write_cfg_partial_generic(logic [31:0] addr, logic [31:0] data, int csr_index);
+	ibex_pkg::pmp_cfg_t csr_pmp_cfg_0_freeze;
+	ibex_pkg::pmp_cfg_t csr_pmp_cfg_3_freeze;
+	t ##0 set_freeze(csr_pmp_cfg_0_freeze, csr_pmp_cfg[csr_index*4 + 0]) and
+	t ##0 set_freeze(csr_pmp_cfg_3_freeze, csr_pmp_cfg[csr_index*4 + 3]) and
+	
+	t ##0 tl_cpu2csr.a_opcode == PutPartialData and
+	t ##0 tl_cpu2csr.a_address == addr and
+	t ##0 tl_cpu2csr.a_data == data and 
+	t ##0 tl_cpu2csr.a_source == 8'h00 and
+	t ##0 tl_cpu2csr.a_valid == 1'b1 and
+	t ##0 tl_cpu2csr.a_size == 2'b01 and
+	t ##0 tl_cpu2csr.a_mask == 4'b0110 and
+	t ##0 tl_csr2cpu.a_ready == 1'b1
+	
+	implies 
 
 	//csr_pmp_cfg is struct of ibex_pkg::pmp_cfg_t
 	// Order {cfg3,cfg2,cfg1,cfg0}
 	//Check if the cfg writting works
-	t ##0 wr_en_csr[0] == 1'b1 and
+	t ##0 wr_en_csr[csr_index] == 1'b1 and 
 	t ##1 tl_csr2cpu.a_ready == 1'b0 and //Hold for 0 , clearify if GET and PUT at the same time are allowed.
-	t ##1 csr_pmp_cfg[3].lock == 1'b1 and
-	t ##1 csr_pmp_cfg[2].lock == 1'b0 and
-	t ##1 csr_pmp_cfg[1].lock == 1'b1 and
-	t ##1 csr_pmp_cfg[0].lock == 1'b0 and
-	t ##1 csr_pmp_cfg[3].mode == PMP_MODE_NAPOT and
-	t ##1 csr_pmp_cfg[2].mode == PMP_MODE_NA4 and
-	t ##1 csr_pmp_cfg[1].mode == PMP_MODE_TOR and
-	t ##1 csr_pmp_cfg[0].mode == PMP_MODE_OFF and
-	t ##1 csr_pmp_cfg[3].exec == 1'b1 and
-	t ##1 csr_pmp_cfg[2].exec == 1'b1 and
-	t ##1 csr_pmp_cfg[1].exec == 1'b0 and
-	t ##1 csr_pmp_cfg[0].exec == 1'b0 and
-	t ##1 csr_pmp_cfg[3].write == 1'b1 and
-	t ##1 csr_pmp_cfg[2].write == 1'b1 and
-	t ##1 csr_pmp_cfg[1].write == 1'b0 and
-	t ##1 csr_pmp_cfg[0].write == 1'b0 and
-	t ##1 csr_pmp_cfg[3].read == 1'b1 and
-	t ##1 csr_pmp_cfg[2].read == 1'b1 and
-	t ##1 csr_pmp_cfg[1].read == 1'b0 and
-	t ##1 csr_pmp_cfg[0].read == 1'b0;
+	t ##1 csr_pmp_cfg[csr_index*4 + 0] == csr_pmp_cfg_0_freeze and
+	t ##1 csr_pmp_cfg[csr_index*4 + 3] == csr_pmp_cfg_3_freeze and
+	t ##1 csr_pmp_cfg[csr_index*4 + 2].lock == data[23] and
+	t ##1 csr_pmp_cfg[csr_index*4 + 1].lock == data[15] and
+	t ##1 csr_pmp_cfg[csr_index*4 + 2].mode == data[20:19] and
+	t ##1 csr_pmp_cfg[csr_index*4 + 1].mode == data[12:11] and
+	t ##1 csr_pmp_cfg[csr_index*4 + 2].exec == data[18] and
+	t ##1 csr_pmp_cfg[csr_index*4 + 1].exec == data[10]and
+	t ##1 csr_pmp_cfg[csr_index*4 + 2].write == data[17] and
+	t ##1 csr_pmp_cfg[csr_index*4 + 1].write == data[9] and
+	t ##1 csr_pmp_cfg[csr_index*4 + 2].read == data[16] and
+	t ##1 csr_pmp_cfg[csr_index*4 + 1].read == data[8];
 endproperty
+for (genvar i = 0; i < NumberConfigEntries ; i++) 
+	begin 
+		a_check_pmp_inputs_after_cpu_write_cfg_partial_generic : assert property (@(posedge clk) disable iff (rst==0) check_pmp_inputs_after_cpu_write_cfg_partial_generic(32'h00000000 + NumberBytesRegisterNonPMP + i*(32'h00000004),32'b11111111111111111111111111110000,i));
+	end
+
+
+//Uncomment to show Dino
 
 property check_pmp_inputs_after_cpu_write_address_full_generic(logic [31:0] addr, logic [31:0] data, int data_csr_index);
 	(t ##0 tl_cpu2csr.a_opcode == PutFullData or
@@ -55,136 +100,21 @@ property check_pmp_inputs_after_cpu_write_address_full_generic(logic [31:0] addr
 	implies
 	t ##1 rd_data_csr[data_csr_index] == data;
 endproperty
-//How the assertion looks like: 
-//a_check_pmp_inputs_after_cpu_write_address3_full:  			assert property (@(posedge clk) disable iff (rst==0) check_pmp_inputs_after_cpu_write_address3_full);
-//generate for (genvar i = $ceil(PMPNumRegions/4); i < $ceil(PMPNumRegions/4) + PMPNumRegions; i++) 
+//How the assertion looks like:  
 
-//generate 
+//Check if address writes work
 $display("The value of TotalIbexCSR is:%d", TotalIbexCSR);
-for (genvar i = 0; i < TotalIbexCSR ; i++) 
+for (genvar i = NumberConfigEntries; i < TotalIbexCSR ; i++) 
 	begin 
-		a_check_pmp_inputs_after_cpu_write_address_full_generic : assert property (@(posedge clk) disable iff (rst==0) check_pmp_inputs_after_cpu_write_address_full_generic(32'h00000000 + i*(32'h00000004),32'b11111111111111111111111111110000,i));
+		a_check_pmp_inputs_after_cpu_write_address_full_generic : assert property (@(posedge clk) disable iff (rst==0) check_pmp_inputs_after_cpu_write_address_full_generic(32'h00000000 + NumberBytesRegisterNonPMP + i*(32'h00000004),32'b11111111111111111111111111110000,i));
 	end
-//endgenerate
 
-/*
-generate
-    for (genvar i = 1; i < 5; i++) begin : test_generic_property
-        a_check_pmp_inputs_after_cpu_write_address_full_generic : assert property (
-            check_pmp_inputs_after_cpu_write_address_full_generic(0 + i*32'h4, 32'hFFFFFFF0, i)
-        );
-    end
-endgenerate*/
-/*
-property check_pmp_inputs_after_cpu_write_address0_full;
-	(t ##0 tl_cpu2csr.a_opcode == PutFullData or
-	t ##0 tl_cpu2csr.a_opcode == PutPartialData) and
-	t ##0 tl_cpu2csr.a_address == 32'h00000004 and
-	t ##0 tl_cpu2csr.a_data == 32'b11111111111111111111111111110000 and 
-	t ##0 tl_cpu2csr.a_source == 8'h00 and
-	t ##0 tl_cpu2csr.a_valid == 1'b1 and
-	t ##0 tl_cpu2csr.a_size == 2'b10 and
-	t ##0 tl_cpu2csr.a_mask == 4'b1111 and
-	t ##0 tl_csr2cpu.a_ready == 1'b1 
-	implies
-	t ##1 rd_data_csr[1] == 32'b11111111111111111111111111110000;
-endproperty
-
-property check_pmp_inputs_after_cpu_write_address1_full;
-
-	(t ##0 tl_cpu2csr.a_opcode == PutFullData or
-	t ##0 tl_cpu2csr.a_opcode == PutPartialData) and
-	t ##0 tl_cpu2csr.a_address == 32'h00000008 and
-	t ##0 tl_cpu2csr.a_data == 32'b11111111111111111111111111000000 and 
-	t ##0 tl_cpu2csr.a_source == 8'h00 and
-	t ##0 tl_cpu2csr.a_valid == 1'b1 and
-	t ##0 tl_cpu2csr.a_size == 2'b10 and
-	t ##0 tl_cpu2csr.a_mask == 4'b1111 and
-	t ##0 tl_csr2cpu.a_ready == 1'b1
-	implies
-	t ##1 rd_data_csr[2] == 32'b11111111111111111111111111000000;
-	
-
-endproperty
-
-property check_pmp_inputs_after_cpu_write_address2_full;
-	(t ##0 tl_cpu2csr.a_opcode == PutFullData or
-	t ##0 tl_cpu2csr.a_opcode == PutPartialData) and
-	t ##0 tl_cpu2csr.a_address == 32'h0000000C and
-	t ##0 tl_cpu2csr.a_data == 32'b11111111111111111111110000000000 and 
-	t ##0 tl_cpu2csr.a_source == 8'h00 and
-	t ##0 tl_cpu2csr.a_valid == 1'b1 and
-	t ##0 tl_cpu2csr.a_size == 2'b10 and
-	t ##0 tl_cpu2csr.a_mask == 4'b1111 and
-	t ##0 tl_csr2cpu.a_ready == 1'b1
-	implies
-	t ##1 rd_data_csr[3] == 32'b11111111111111111111110000000000;
-
-endproperty
-
-property check_pmp_inputs_after_cpu_write_address3_full;
-	(t ##0 tl_cpu2csr.a_opcode == PutFullData or
-	t ##0 tl_cpu2csr.a_opcode == PutPartialData) and
-	t ##0 tl_cpu2csr.a_address == 32'h00000010 and
-	t ##0 tl_cpu2csr.a_data == 32'b11111111111111111100000000000000 and 
-	t ##0 tl_cpu2csr.a_source == 8'h00 and
-	t ##0 tl_cpu2csr.a_valid == 1'b1 and
-	t ##0 tl_cpu2csr.a_size == 2'b10 and
-	t ##0 tl_cpu2csr.a_mask == 4'b1111 and
-	t ##0 tl_csr2cpu.a_ready == 1'b1
-	implies
-	t ##1 rd_data_csr[4] == 32'b11111111111111111100000000000000;
-
-endproperty
-*/
-property check_pmp_inputs_after_cpu_write_cfg_partial;
-	ibex_pkg::pmp_cfg_t csr_pmp_cfg_0_freeze;
-	ibex_pkg::pmp_cfg_t csr_pmp_cfg_1_freeze;
-	ibex_pkg::pmp_cfg_t csr_pmp_cfg_2_freeze;
-	ibex_pkg::pmp_cfg_t csr_pmp_cfg_3_freeze;
-	t ##0 set_freeze(csr_pmp_cfg_0_freeze, csr_pmp_cfg[0]) and
-	t ##0 set_freeze(csr_pmp_cfg_1_freeze, csr_pmp_cfg[1]) and
-	t ##0 set_freeze(csr_pmp_cfg_2_freeze, csr_pmp_cfg[2]) and
-	t ##0 set_freeze(csr_pmp_cfg_3_freeze, csr_pmp_cfg[3]) and
-	
-	t ##0 tl_cpu2csr.a_opcode == PutPartialData and
-	t ##0 tl_cpu2csr.a_address == 32'h00000000 and
-	t ##0 tl_cpu2csr.a_data == 32'b10011111000101111000100001100000 and 
-	t ##0 tl_cpu2csr.a_source == 8'h00 and
-	t ##0 tl_cpu2csr.a_valid == 1'b1 and
-	t ##0 tl_cpu2csr.a_size == 2'b01 and
-	t ##0 tl_cpu2csr.a_mask == 4'b0110 and
-	t ##0 tl_csr2cpu.a_ready == 1'b1
-	
-	implies 
-
-	//csr_pmp_cfg is struct of ibex_pkg::pmp_cfg_t
-	// Order {cfg3,cfg2,cfg1,cfg0}
-	//Check if the cfg writting works
-	t ##0 wr_en_csr[0] == 1'b1 and 
-	t ##1 tl_csr2cpu.a_ready == 1'b0 and //Hold for 0 , clearify if GET and PUT at the same time are allowed.
-	t ##1 csr_pmp_cfg[0] == csr_pmp_cfg_0_freeze and
-	t ##1 csr_pmp_cfg[3] == csr_pmp_cfg_3_freeze and
-	t ##1 csr_pmp_cfg[2].lock == 1'b0 and
-	t ##1 csr_pmp_cfg[1].lock == 1'b1 and
-	t ##1 csr_pmp_cfg[2].mode == PMP_MODE_NA4 and
-	t ##1 csr_pmp_cfg[1].mode == PMP_MODE_TOR and
-	t ##1 csr_pmp_cfg[2].exec == 1'b1 and
-	t ##1 csr_pmp_cfg[1].exec == 1'b0 and
-	t ##1 csr_pmp_cfg[2].write == 1'b1 and
-	t ##1 csr_pmp_cfg[1].write == 1'b0 and
-	t ##1 csr_pmp_cfg[2].read == 1'b1 and
-	t ##1 csr_pmp_cfg[1].read == 1'b0;
-endproperty
-
-
-/**/
-property check_pmp_inputs_after_cpu_write_address0_partial;
+property check_pmp_inputs_after_cpu_write_address_partial_generic(logic [31:0] addr, logic [31:0] data, int data_csr_index);
 	logic [31:0] previous_data;
 	t ##0 set_freeze(previous_data, rd_data_csr[1]) and
 	t ##0 tl_cpu2csr.a_opcode == PutPartialData and
-	t ##0 tl_cpu2csr.a_address == 32'h00000004 and
-	t ##0 tl_cpu2csr.a_data == 32'b11111111111111111111111111110000 and 
+	t ##0 tl_cpu2csr.a_address == addr and
+	t ##0 tl_cpu2csr.a_data == data and 
 	t ##0 tl_cpu2csr.a_source == 8'h00 and
 	t ##0 tl_cpu2csr.a_valid == 1'b1 and
 	t ##0 tl_cpu2csr.a_size == 2'b01 and
@@ -192,111 +122,13 @@ property check_pmp_inputs_after_cpu_write_address0_partial;
 	t ##0 tl_csr2cpu.a_ready == 1'b1 
 	implies
 	t ##1 rd_data_csr[1][31:16] == previous_data[31:16] and
-	t ##1 rd_data_csr[1][15:0] == 16'b1111111111110000;
+	t ##1 rd_data_csr[1][15:0] == data[15:0];
 endproperty
-/* */
-property check_pmp_inputs_after_cpu_write_address1_partial;
-
-	logic [31:0] previous_data;
-	t ##0 set_freeze(previous_data, rd_data_csr[2]) and
-	t ##0 tl_cpu2csr.a_opcode == PutPartialData and
-	t ##0 tl_cpu2csr.a_address == 32'h00000008 and
-	t ##0 tl_cpu2csr.a_data == 32'b11111111111111111111111111110000 and 
-	t ##0 tl_cpu2csr.a_source == 8'h00 and
-	t ##0 tl_cpu2csr.a_valid == 1'b1 and
-	t ##0 tl_cpu2csr.a_size == 2'b01 and
-	t ##0 tl_cpu2csr.a_mask == 4'b0011 and
-	t ##0 tl_csr2cpu.a_ready == 1'b1 
-	implies
-	t ##1 rd_data_csr[2][31:16] == previous_data[31:16] and
-	t ##1 rd_data_csr[2][15:0] == 16'b1111111111110000;
-	
-
-endproperty
-
-property check_pmp_inputs_after_cpu_write_address2_partial;
-	logic [31:0] previous_data;
-	t ##0 set_freeze(previous_data, rd_data_csr[3]) and
-	t ##0 tl_cpu2csr.a_opcode == PutPartialData and
-	t ##0 tl_cpu2csr.a_address == 32'h0000000c and
-	t ##0 tl_cpu2csr.a_data == 32'b11111111111111111111111111110000 and 
-	t ##0 tl_cpu2csr.a_source == 8'h00 and
-	t ##0 tl_cpu2csr.a_valid == 1'b1 and
-	t ##0 tl_cpu2csr.a_size == 2'b01 and
-	t ##0 tl_cpu2csr.a_mask == 4'b0011 and
-	t ##0 tl_csr2cpu.a_ready == 1'b1 
-	implies
-	t ##1 rd_data_csr[3][31:16] == previous_data[31:16] and
-	t ##1 rd_data_csr[3][15:0] == 16'b1111111111110000;
-
-endproperty
-
-property check_pmp_inputs_after_cpu_write_address3_partial;
-	logic [31:0] previous_data;
-	t ##0 set_freeze(previous_data, rd_data_csr[4]) and
-	t ##0 tl_cpu2csr.a_opcode == PutPartialData and
-	t ##0 tl_cpu2csr.a_address == 32'h00000010 and
-	t ##0 tl_cpu2csr.a_data == 32'b11111111111111111111111111110000 and 
-	t ##0 tl_cpu2csr.a_source == 8'h00 and
-	t ##0 tl_cpu2csr.a_valid == 1'b1 and
-	t ##0 tl_cpu2csr.a_size == 2'b01 and
-	t ##0 tl_cpu2csr.a_mask == 4'b0011 and
-	t ##0 tl_csr2cpu.a_ready == 1'b1 
-	implies
-	t ##1 rd_data_csr[4][31:16] == previous_data[31:16] and
-	t ##1 rd_data_csr[4][15:0] == 16'b1111111111110000;
-
-endproperty
-/**/
-
-
-
-property check_pmp_inputs_after_cpu_write_cfg_full_addressOR;
-	
-	
-	//This property expect only 4 entries (5 registers) of pmp
-	(t ##0 tl_cpu2csr.a_opcode == PutFullData or
-	t ##0 tl_cpu2csr.a_opcode == PutPartialData) and
-	//t ##0 tl_cpu2csr.a_address == 32'h000000F0 and
-	t ##0 tl_cpu2csr.a_address >= 32'h00000014 and
-	t ##0 tl_cpu2csr.a_address <= 32'h000003bf and
-	t ##0 tl_cpu2csr.a_data == 32'b10011111000101111000100001100000 and 
-	t ##0 tl_cpu2csr.a_source == 8'h00 and
-	t ##0 tl_cpu2csr.a_valid == 1'b1 and
-	t ##0 tl_cpu2csr.a_size == 2'b10 and
-	t ##0 tl_cpu2csr.a_mask == 4'b1111 and
-	t ##0 tl_csr2cpu.a_ready == 1'b1 and
-	t ##1 tl_cpu2csr.d_ready == 1'b1 
-	
-	implies 
-	t ##1 tl_csr2cpu.d_error == 1'b1 and
-	t ##1 activate_cpu_err_resp_q == 1'b1 and
-	t ##1 ack_outstanding_q == 1'b0;
-	
-endproperty
-
-property check_pmp_inputs_after_cpu_write_cfg_partial_addressOR;
-	//This property expect only 4 entries (5 registers) of pmp
-	(t ##0 tl_cpu2csr.a_opcode == PutFullData or
-	t ##0 tl_cpu2csr.a_opcode == PutPartialData) and
-	//t ##0 tl_cpu2csr.a_address == 32'h000000F0 and
-	t ##0 tl_cpu2csr.a_address >= 32'h00000014 and
-	t ##0 tl_cpu2csr.a_address <= 32'h000003bf and
-	t ##0 tl_cpu2csr.a_data == 32'b10011111000101111000100001100000 and 
-	t ##0 tl_cpu2csr.a_source == 8'h00 and
-	t ##0 tl_cpu2csr.a_valid == 1'b1 and
-	t ##0 tl_cpu2csr.a_size == 2'b10 and
-	t ##0 tl_cpu2csr.a_mask != 4'b0000 and
-	t ##0 tl_cpu2csr.a_mask != 4'b1111 and
-	t ##0 tl_csr2cpu.a_ready == 1'b1 and
-	t ##1 tl_cpu2csr.d_ready == 1'b1 
-	
-	implies 
-	t ##1 tl_csr2cpu.d_error == 1'b1 and
-	t ##1 activate_cpu_err_resp_q == 1'b1 and
-	t ##1 ack_outstanding_q == 1'b0;
-	
-endproperty
+//Check if address writes work
+for (genvar i = NumberConfigEntries; i < TotalIbexCSR ; i++) 
+	begin 
+		a_check_pmp_inputs_after_cpu_write_address_partial_generic : assert property (@(posedge clk) disable iff (rst==0) check_pmp_inputs_after_cpu_write_address_full_generic(32'h00000000 + NumberBytesRegisterNonPMP + i*(32'h00000004),32'b11111111111111111111111111110000,i));
+	end
 
 property upperbound_OR;
 	
@@ -305,8 +137,8 @@ property upperbound_OR;
 	(t ##0 tl_cpu2csr.a_opcode == PutFullData or
 	t ##0 tl_cpu2csr.a_opcode == PutPartialData) and
 	//t ##0 tl_cpu2csr.a_address == 32'h000000F0 and
-	t ##0 tl_cpu2csr.a_address <= 32'h000003FF and
-	t ##0 tl_cpu2csr.a_address >= 32'h000003DC and
+	//t ##0 tl_cpu2csr.a_address <= 32'h000003FF and
+	t ##0 tl_cpu2csr.a_address >= (32'h00000000 + NumberBytesRegisterNonPMP + TotalIbexCSR*(32'h00000004)) and
 	t ##0 tl_cpu2csr.a_data == 32'b10011111000101111000100001100000 and 
 	t ##0 tl_cpu2csr.a_source == 8'h00 and
 	t ##0 tl_cpu2csr.a_valid == 1'b1 and
@@ -344,7 +176,7 @@ endproperty
 property set_go_to_idle;
 	(t ##0 tl_cpu2csr.a_opcode == PutFullData or
 	t ##0 tl_cpu2csr.a_opcode == PutPartialData) and
-	t ##0 tl_cpu2csr.a_address == 32'h000003C0 and
+	t ##0 tl_cpu2csr.a_address == 32'h00000000 and
 	t ##0 tl_cpu2csr.a_data == 32'b11111111111111111111111111110000 and 
 	t ##0 tl_cpu2csr.a_source == 8'h00 and
 	t ##0 tl_cpu2csr.a_valid == 1'b1 and
@@ -358,7 +190,7 @@ endproperty
 property W1C_INTR_STATE_set;
 	(t ##0 tl_cpu2csr.a_opcode == PutFullData or
 	t ##0 tl_cpu2csr.a_opcode == PutPartialData) and
-	t ##0 tl_cpu2csr.a_address == 32'h000003D0 and
+	t ##0 tl_cpu2csr.a_address == 32'h00000010 and
 	t ##0 tl_cpu2csr.a_data == 32'b10000000000000000000000000000000 and 
 	t ##0 tl_cpu2csr.a_source == 8'h00 and
 	t ##0 tl_cpu2csr.a_valid == 1'b1 and
@@ -373,7 +205,7 @@ endproperty
 property Write_INTR_ENABLE;
 		(t ##0 tl_cpu2csr.a_opcode == PutFullData or
 		t ##0 tl_cpu2csr.a_opcode == PutPartialData) and
-		t ##0 tl_cpu2csr.a_address == 32'h000003D4 and
+		t ##0 tl_cpu2csr.a_address == 32'h00000014 and
 		t ##0 tl_cpu2csr.a_data == 32'b10000000000000000000000000000000 and 
 		t ##0 tl_cpu2csr.a_source == 8'h00 and
 		t ##0 tl_cpu2csr.a_valid == 1'b1 and
@@ -385,19 +217,10 @@ property Write_INTR_ENABLE;
 	endproperty
 
 //Assertions for CPU->CSR TLUL Interface
-a_check_pmp_inputs_after_cpu_write_cfg_full:  				assert property (@(posedge clk) disable iff (rst==0) check_pmp_inputs_after_cpu_write_cfg_full);
-/*a_check_pmp_inputs_after_cpu_write_address0_full:  			assert property (@(posedge clk) disable iff (rst==0) check_pmp_inputs_after_cpu_write_address0_full);
-a_check_pmp_inputs_after_cpu_write_address1_full:  			assert property (@(posedge clk) disable iff (rst==0) check_pmp_inputs_after_cpu_write_address1_full);
-a_check_pmp_inputs_after_cpu_write_address2_full:  			assert property (@(posedge clk) disable iff (rst==0) check_pmp_inputs_after_cpu_write_address2_full);
-a_check_pmp_inputs_after_cpu_write_address3_full:  			assert property (@(posedge clk) disable iff (rst==0) check_pmp_inputs_after_cpu_write_address3_full);*/
-a_check_pmp_inputs_after_cpu_write_cfg_partial:				assert property (@(posedge clk) disable iff (rst==0) check_pmp_inputs_after_cpu_write_cfg_partial);
-a_check_pmp_inputs_after_cpu_write_address0_partial:			assert property (@(posedge clk) disable iff (rst==0) check_pmp_inputs_after_cpu_write_address0_partial);
-a_check_pmp_inputs_after_cpu_write_address1_partial:			assert property (@(posedge clk) disable iff (rst==0) check_pmp_inputs_after_cpu_write_address1_partial);
-a_check_pmp_inputs_after_cpu_write_address2_partial:			assert property (@(posedge clk) disable iff (rst==0) check_pmp_inputs_after_cpu_write_address2_partial);
-a_check_pmp_inputs_after_cpu_write_address3_partial:			assert property (@(posedge clk) disable iff (rst==0) check_pmp_inputs_after_cpu_write_address3_partial);
+//a_check_pmp_inputs_after_cpu_write_cfg_partial:				assert property (@(posedge clk) disable iff (rst==0) check_pmp_inputs_after_cpu_write_cfg_partial);
 //OR:Out of Range
-a_check_pmp_inputs_after_cpu_write_cfg_full_addressOR:  		assert property (@(posedge clk) disable iff (rst==0) check_pmp_inputs_after_cpu_write_cfg_full_addressOR);
-a_check_pmp_inputs_after_cpu_write_cfg_partial_addressOR:  		assert property (@(posedge clk) disable iff (rst==0) check_pmp_inputs_after_cpu_write_cfg_partial_addressOR);
+//a_check_pmp_inputs_after_cpu_write_cfg_full_addressOR:  		assert property (@(posedge clk) disable iff (rst==0) check_pmp_inputs_after_cpu_write_cfg_full_addressOR);
+//a_check_pmp_inputs_after_cpu_write_cfg_partial_addressOR:  		assert property (@(posedge clk) disable iff (rst==0) check_pmp_inputs_after_cpu_write_cfg_partial_addressOR);
 a_invalid_cpu_request:							assert property (@(posedge clk) disable iff (rst==0) invalid_cpu_request);
 a_upperbound_OR:							assert property (@(posedge clk) disable iff (rst==0) upperbound_OR);
 //Go back to idle from cpu

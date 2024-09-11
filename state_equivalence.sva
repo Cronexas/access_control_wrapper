@@ -17,8 +17,9 @@ state_equivalence = (
   (U1.cpu_error_response.err_source == U2.cpu_error_response.err_source) &&
   (U1.current_state == U2.current_state) &&
   (U1.denied_addr_read_q == U2.denied_addr_read_q) &&
-  (U1.denied_reg_addr_q == U2.denied_reg_addr_q) &&
-  (U1.denied_reg_type_q == U2.denied_reg_type_q) &&
+  //We dont control the address and type of access, therefor we expect those to be different
+  //(U1.denied_reg_addr_q == U2.denied_reg_addr_q) &&
+  //(U1.denied_reg_type_q == U2.denied_reg_type_q) &&
   (U1.err_resp_wrapper.err_instr_type == U2.err_resp_wrapper.err_instr_type) &&
   (U1.err_resp_wrapper.err_opcode == U2.err_resp_wrapper.err_opcode) &&
   (U1.err_resp_wrapper.err_req_pending == U2.err_resp_wrapper.err_req_pending) &&
@@ -32,13 +33,96 @@ state_equivalence = (
   (U1.gen_pmp_csr[3].pmp_csr.rdata_q == U2.gen_pmp_csr[3].pmp_csr.rdata_q) &&
   (U1.gen_pmp_csr[4].pmp_csr.rdata_q == U2.gen_pmp_csr[4].pmp_csr.rdata_q) &&
   (U1.gen_pmp_csr[5].pmp_csr.rdata_q == U2.gen_pmp_csr[5].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[6].pmp_csr.rdata_q == U2.gen_pmp_csr[6].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[7].pmp_csr.rdata_q == U2.gen_pmp_csr[7].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[8].pmp_csr.rdata_q == U2.gen_pmp_csr[8].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[9].pmp_csr.rdata_q == U2.gen_pmp_csr[9].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[10].pmp_csr.rdata_q == U2.gen_pmp_csr[10].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[11].pmp_csr.rdata_q == U2.gen_pmp_csr[11].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[12].pmp_csr.rdata_q == U2.gen_pmp_csr[12].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[13].pmp_csr.rdata_q == U2.gen_pmp_csr[13].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[14].pmp_csr.rdata_q == U2.gen_pmp_csr[14].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[15].pmp_csr.rdata_q == U2.gen_pmp_csr[15].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[16].pmp_csr.rdata_q == U2.gen_pmp_csr[16].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[17].pmp_csr.rdata_q == U2.gen_pmp_csr[17].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[18].pmp_csr.rdata_q == U2.gen_pmp_csr[18].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[19].pmp_csr.rdata_q == U2.gen_pmp_csr[19].pmp_csr.rdata_q) &&
   (U1.go_to_idle_q == U2.go_to_idle_q) &&
-  (U1.pmp_reg_err_q == U2.pmp_reg_err_q) &&
   (U1.source_id_q == U2.source_id_q) &&
   (U1.tl_cpu2csr_q == U2.tl_cpu2csr_q) &&
-  (U1.tl_csr2cpu_q == U2.tl_csr2cpu_q) &&
+  //This register is dependend on the message tl_h2pmp, therefor it's allowed to be different
+  //(U1.tl_csr2cpu_q == U2.tl_csr2cpu_q) &&
   (U1.tl_err_rsp_device_outstanding_q == U2.tl_err_rsp_device_outstanding_q) &&
   (U1.wr_data_csr == U2.wr_data_csr) &&
+  (U1.cpu_addr_reg_abs == U2.cpu_addr_reg_abs) &&
+  (U1.rd_data_csr == U2.rd_data_csr) && 
+  (U1.wr_en_csr == U2.wr_en_csr)
+);
+endfunction
+
+//L alert : Leakage alert
+
+function automatic state_equivalence2();
+state_equivalence2 = (
+  (U1.INTR_ENABLE_q == U2.INTR_ENABLE_q) &&
+  (U1.INTR_ENABLE_we_q == U2.INTR_ENABLE_we_q) &&
+  (U1.INTR_STATE_q == U2.INTR_STATE_q) &&
+  (U1.INTR_STATE_we_q == U2.INTR_STATE_we_q) &&
+  (U1.INTR_TEST_q == U2.INTR_TEST_q) &&
+  (U1.INTR_TEST_we_q == U2.INTR_TEST_we_q) &&
+  (U1.ack_opcode_q == U2.ack_opcode_q) &&
+  (U1.ack_outstanding_q == U2.ack_outstanding_q) &&
+  (U1.activate_cpu_err_resp_q == U2.activate_cpu_err_resp_q) &&
+  //(U1.cpu_error_response.err_instr_type == U2.cpu_error_response.err_instr_type) && //First state causing an "error" (Propagation (P) alert)
+  //(U1.cpu_error_response.err_opcode == U2.cpu_error_response.err_opcode) &&
+  //(U1.cpu_error_response.err_req_pending == U2.cpu_error_response.err_req_pending) &&
+  (U1.cpu_error_response.err_rsp_pending == U2.cpu_error_response.err_rsp_pending) &&
+  //(U1.cpu_error_response.err_size == U2.cpu_error_response.err_size) &&
+  //(U1.cpu_error_response.err_source == U2.cpu_error_response.err_source) && P alert
+  (U1.current_state == U2.current_state) &&
+  (U1.denied_addr_read_q == U2.denied_addr_read_q) &&
+  //Address can be different
+  //(U1.denied_reg_addr_q == U2.denied_reg_addr_q) &&
+  //(U1.denied_reg_type_q == U2.denied_reg_type_q) &&
+  // We dont care about any different internal states as long as the returned tile link message is correct!
+  //We trust OpenTitan enough, to expect it works.
+  //(U1.err_resp_wrapper.err_instr_type == U2.err_resp_wrapper.err_instr_type) &&
+  //(U1.err_resp_wrapper.err_opcode == U2.err_resp_wrapper.err_opcode) &&
+  //(U1.err_resp_wrapper.err_req_pending == U2.err_resp_wrapper.err_req_pending) &&
+  //(U1.err_resp_wrapper.err_rsp_pending == U2.err_resp_wrapper.err_rsp_pending) &&
+  //(U1.err_resp_wrapper.err_size == U2.err_resp_wrapper.err_size) &&
+  //(U1.err_resp_wrapper.err_source == U2.err_resp_wrapper.err_source) &&
+  (U1.err_rsp_sent_q == U2.err_rsp_sent_q) &&
+  //Added all CSRs
+  (U1.gen_pmp_csr[0].pmp_csr.rdata_q == U2.gen_pmp_csr[0].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[1].pmp_csr.rdata_q == U2.gen_pmp_csr[1].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[2].pmp_csr.rdata_q == U2.gen_pmp_csr[2].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[3].pmp_csr.rdata_q == U2.gen_pmp_csr[3].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[4].pmp_csr.rdata_q == U2.gen_pmp_csr[4].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[5].pmp_csr.rdata_q == U2.gen_pmp_csr[5].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[6].pmp_csr.rdata_q == U2.gen_pmp_csr[6].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[7].pmp_csr.rdata_q == U2.gen_pmp_csr[7].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[8].pmp_csr.rdata_q == U2.gen_pmp_csr[8].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[9].pmp_csr.rdata_q == U2.gen_pmp_csr[9].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[10].pmp_csr.rdata_q == U2.gen_pmp_csr[10].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[11].pmp_csr.rdata_q == U2.gen_pmp_csr[11].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[12].pmp_csr.rdata_q == U2.gen_pmp_csr[12].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[13].pmp_csr.rdata_q == U2.gen_pmp_csr[13].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[14].pmp_csr.rdata_q == U2.gen_pmp_csr[14].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[15].pmp_csr.rdata_q == U2.gen_pmp_csr[15].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[16].pmp_csr.rdata_q == U2.gen_pmp_csr[16].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[17].pmp_csr.rdata_q == U2.gen_pmp_csr[17].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[18].pmp_csr.rdata_q == U2.gen_pmp_csr[18].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[19].pmp_csr.rdata_q == U2.gen_pmp_csr[19].pmp_csr.rdata_q) &&
+  (U1.go_to_idle_q == U2.go_to_idle_q) &&
+  (U1.source_id_q == U2.source_id_q) &&
+  (U1.tl_cpu2csr_q == U2.tl_cpu2csr_q) &&
+  //This register is dependend on the message tl_h2pmp, therefor it's allowed to be different
+  //(U1.tl_csr2cpu_q == U2.tl_csr2cpu_q) &&
+  (U1.tl_err_rsp_device_outstanding_q == U2.tl_err_rsp_device_outstanding_q) &&
+  (U1.wr_data_csr == U2.wr_data_csr) &&
+  (U1.cpu_addr_reg_abs == U2.cpu_addr_reg_abs) &&
+  (U1.rd_data_csr == U2.rd_data_csr) && 
   (U1.wr_en_csr == U2.wr_en_csr)
 );
 endfunction
