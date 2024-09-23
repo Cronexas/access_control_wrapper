@@ -75,12 +75,46 @@ sequence no_go_to_idle;
 	U2.go_to_idle_d == 0'b0;
 endsequence
 
+sequence h2pmp_all_equal_except_address_and_data;
+	U1.tl_h2pmp.a_valid == U2.tl_h2pmp.a_valid &&
+	U1.tl_h2pmp.a_opcode == U2.tl_h2pmp.a_opcode &&
+	U1.tl_h2pmp.a_param == U2.tl_h2pmp.a_param &&
+	U1.tl_h2pmp.a_size == U2.tl_h2pmp.a_size &&
+	U1.tl_h2pmp.a_source == U2.tl_h2pmp.a_source &&
+	U1.tl_h2pmp.a_mask == U2.tl_h2pmp.a_mask &&
+	U1.tl_h2pmp.a_user == U2.tl_h2pmp.a_user;
+
+endsequence
+
+sequence h2pmp_all_equal_except_data;
+	U1.tl_h2pmp.a_valid == U2.tl_h2pmp.a_valid &&
+	U1.tl_h2pmp.a_opcode == U2.tl_h2pmp.a_opcode &&
+	U1.tl_h2pmp.a_param == U2.tl_h2pmp.a_param &&
+	U1.tl_h2pmp.a_size == U2.tl_h2pmp.a_size &&
+	U1.tl_h2pmp.a_source == U2.tl_h2pmp.a_source &&
+	U1.tl_h2pmp.a_mask == U2.tl_h2pmp.a_mask &&
+	U1.tl_h2pmp.a_address == U2.tl_h2pmp.a_address &&
+	U1.tl_h2pmp.a_user == U2.tl_h2pmp.a_user;
+
+endsequence
 /*
 sequence master_recieves_error_to_illegal_message;
 	U1.tl_err_rsp_device_outstanding == 
 	U2.tl_err_rsp_device_outstanding
 endsequence
 */
+sequence h2pmp_limitations;
+	//1)The first prototype throw error for outgoing signals.
+	//One Instance had a valid incoming signal, the other didn't, 
+	//therefor for obvious reason (valid check) signal get's blocked 
+	/*
+	U1.tl_h2pmp.a_valid == 1'b1 &&  
+	U2.tl_h2pmp.a_valid == 1'b1;
+	*/
+	U1.tl_h2pmp.a_valid == U2.tl_h2pmp.a_valid;
+	
+
+endsequence
 function automatic input_equivalence();
     input_equivalence = (
         (U1.clk == U2.clk) &&
@@ -95,43 +129,109 @@ function automatic input_equivalence();
         );
 endfunction
 
+function automatic input_equivalence2();
+    input_equivalence2 = (
+        (U1.clk == U2.clk) &&
+        (U1.rst == U2.rst) &&
+        (U1.tl_cpu2csr == U2.tl_cpu2csr) &&
+        (U1.tl_d2pmp == U2.tl_d2pmp) &&
+        U1.tl_h2pmp == U2.tl_h2pmp
+        );
+endfunction
+
+sequence pmp2d_same_except_data;
+	U1.tl_pmp2d.a_valid == U2.tl_pmp2d.a_valid &&
+	U1.tl_pmp2d.a_opcode == U2.tl_pmp2d.a_opcode &&
+	U1.tl_pmp2d.a_param == U2.tl_pmp2d.a_param &&
+	U1.tl_pmp2d.a_size == U2.tl_pmp2d.a_size &&
+	U1.tl_pmp2d.a_source == U2.tl_pmp2d.a_source &&
+	U1.tl_pmp2d.a_mask == U2.tl_pmp2d.a_mask &&
+	U1.tl_pmp2d.a_address == U2.tl_pmp2d.a_address &&
+	U1.tl_pmp2d.a_user == U2.tl_pmp2d.a_user;
+endsequence
+
 function automatic output_equivalence();
     output_equivalence = (
         U1.irq_q == U2.irq_q &&
         U1.tl_csr2cpu.d_valid == U2.tl_csr2cpu.d_valid &&
 	U1.tl_csr2cpu.a_ready == U2.tl_csr2cpu.a_ready &&
         U1.tl_pmp2d == U2.tl_pmp2d 
-
-
-	//Not sure about uncommenting this part//&&
-        //U1.tl_pmp2h == U2.tl_pmp2h
     );
 endfunction
 
 `begin_tda(ops)
 
 // In general, you shouldn't make assumptions on outputs, only on states and inputs
-  property upec_dummy;
+  property upec_base;
 //	t ## 0 U1_pmp2d_defined_all_except_valid_and_ready and
 //	t ## 0 U2_pmp2d_defined_all_except_valid_and_ready and
 	t ## 0 state_equivalence() and
 	t ## 0 input_equivalence() and
-	t ## 1 input_equivalence() and
+	t ## 1 input_equivalence2() and
+	t ## 2 input_equivalence2() and
 //	t ## 1 U1_pmp2d_defined_all_except_valid_and_ready and
 //	t ## 1 U2_pmp2d_defined_all_except_valid_and_ready 
 	//Discuss Dino: transition from blocking to idle should not send pmp2d = h2pmp
-	t ## 0 no_go_to_idle and
-	t ## 1 no_go_to_idle and
+	//t ## 0 no_go_to_idle and
+	//t ## 1 no_go_to_idle and
+	//t ## 2 no_go_to_idle and
+	//Assume h2pmp is equal except for address range and content of data.
+	//t ## 0 h2pmp_all_equal_except_address_and_data and
+	//t ## 1 h2pmp_all_equal_except_address_and_data and
+	//t ## 2 h2pmp_all_equal_except_address_and_data and
+	t ## 0 h2pmp_all_equal_except_data and
+	//t ## 1 h2pmp_all_equal_except_data and
+	//t ## 2 h2pmp_all_equal_except_data and
 	//Assume illegal messages by err of pmp
-	t ## 0 master_sends_illegal_messages and
-	t ## 1 master_sends_illegal_messages
+	t ## 0 master_sends_illegal_messages //and
+	//t ## 1 master_sends_illegal_messages
 	implies
 	t ## 0 output_equivalence() and
 	t ## 1 output_equivalence() and
-	t ## 1 state_equivalence2();
+	t ## 1 state_equivalence2() and
+	t ## 2 output_equivalence() and
+	t ## 2 state_equivalence2();
   endproperty
 
-assert_upec_dummy: assert property (upec_dummy);
+
+  property upec_step;
+	//t ## 0 U1_pmp2d_defined_all_except_valid_and_ready and
+	//t ## 0 U2_pmp2d_defined_all_except_valid_and_ready and
+	//h2pmp_limitations has been added to limit h2pmp in some cases. 
+	t ## 0 h2pmp_limitations and
+	t ## 0 state_equivalence2() and
+	t ## 0 input_equivalence() and
+	t ## 1 input_equivalence2() and
+	//t ## 2 input_equivalence2() and
+	//t ## 1 U1_pmp2d_defined_all_except_valid_and_ready and
+ 	//t ## 1 U2_pmp2d_defined_all_except_valid_and_ready 
+	//Discuss Dino: transition from blocking to idle should not send pmp2d = h2pmp
+	//t ## 0 no_go_to_idle and
+	//t ## 1 no_go_to_idle and
+	//t ## 2 no_go_to_idle and
+	//Assume h2pmp is equal except for address range and content of data.
+	//t ## 0 h2pmp_all_equal_except_address_and_data and
+	//t ## 1 h2pmp_all_equal_except_address_and_data and
+	//t ## 2 h2pmp_all_equal_except_address_and_data and
+	//t ## 0 h2pmp_all_equal_except_data and
+	//t ## 1 h2pmp_all_equal_except_data and
+	//t ## 2 h2pmp_all_equal_except_data and
+	//Assume illegal messages by err of pmp
+	// 2) We want to assume that both instances have an erroues message.
+	//   We trust pmp therefor we expect it to catch access that are not allowed
+	t ## 0 master_sends_illegal_messages //and
+	//t ## 1 master_sends_illegal_messages
+	implies
+	t ## 0 output_equivalence() and
+	t ## 1 output_equivalence() and
+	// 3) See also state_equivalence.sva 3)
+	t ## 1 state_equivalence2() //and
+	//t ## 2 output_equivalence() and
+	//t ## 2 state_equivalence2();
+  endproperty
+
+assert_upec_base: assert property (upec_base);
+assert_upec_step: assert property (upec_step);
 
 `end_tda
 

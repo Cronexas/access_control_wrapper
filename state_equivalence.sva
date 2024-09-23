@@ -18,8 +18,8 @@ state_equivalence = (
   (U1.current_state == U2.current_state) &&
   (U1.denied_addr_read_q == U2.denied_addr_read_q) &&
   //We dont control the address and type of access, therefor we expect those to be different
-  //(U1.denied_reg_addr_q == U2.denied_reg_addr_q) &&
-  //(U1.denied_reg_type_q == U2.denied_reg_type_q) &&
+  (U1.denied_reg_addr_q == U2.denied_reg_addr_q) &&
+  (U1.denied_reg_type_q == U2.denied_reg_type_q) &&
   (U1.err_resp_wrapper.err_instr_type == U2.err_resp_wrapper.err_instr_type) &&
   (U1.err_resp_wrapper.err_opcode == U2.err_resp_wrapper.err_opcode) &&
   (U1.err_resp_wrapper.err_req_pending == U2.err_resp_wrapper.err_req_pending) &&
@@ -51,7 +51,7 @@ state_equivalence = (
   (U1.source_id_q == U2.source_id_q) &&
   (U1.tl_cpu2csr_q == U2.tl_cpu2csr_q) &&
   //This register is dependend on the message tl_h2pmp, therefor it's allowed to be different
-  //(U1.tl_csr2cpu_q == U2.tl_csr2cpu_q) &&
+  (U1.tl_csr2cpu_q == U2.tl_csr2cpu_q) &&
   (U1.tl_err_rsp_device_outstanding_q == U2.tl_err_rsp_device_outstanding_q) &&
   (U1.wr_data_csr == U2.wr_data_csr) &&
   (U1.cpu_addr_reg_abs == U2.cpu_addr_reg_abs) &&
@@ -76,7 +76,8 @@ state_equivalence2 = (
   //(U1.cpu_error_response.err_instr_type == U2.cpu_error_response.err_instr_type) && //First state causing an "error" (Propagation (P) alert)
   //(U1.cpu_error_response.err_opcode == U2.cpu_error_response.err_opcode) &&
   //(U1.cpu_error_response.err_req_pending == U2.cpu_error_response.err_req_pending) &&
-  (U1.cpu_error_response.err_rsp_pending == U2.cpu_error_response.err_rsp_pending) &&
+  // 3) This is an internal signal of the cpu_error_response. We expect it to work.
+  //(U1.cpu_error_response.err_rsp_pending == U2.cpu_error_response.err_rsp_pending) &&
   //(U1.cpu_error_response.err_size == U2.cpu_error_response.err_size) &&
   //(U1.cpu_error_response.err_source == U2.cpu_error_response.err_source) && P alert
   (U1.current_state == U2.current_state) &&

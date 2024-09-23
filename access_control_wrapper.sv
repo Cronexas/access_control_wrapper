@@ -642,6 +642,7 @@ end
 			if(go_to_idle_d) begin
 				next_state = idle;
 				//go_to_idle_d = 1'b0;
+				//Found that with UPEC; add this to the corresponding section.
 				// Dino:This might be security critical
 				//tl_pmp2d = tl_h2pmp;
 				tl_pmp2h.a_ready = tl_d2pmp.a_ready;
