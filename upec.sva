@@ -1,12 +1,14 @@
 module property_checker
   (
   input clk,
-  input rst
+  input rst,
+  input Register_q
   );
 
 default clocking default_clk @(posedge clk); endclocking
 
 `include "tidal.sv"
+`include "Testbench/symbolic_pmp_with_symbolic_cfg.sv"
 
 `include "state_equivalence.sva"
 sequence U1_pmp2d_defined_all_except_valid_and_ready;
@@ -165,10 +167,14 @@ endfunction
   property upec_base;
 //	t ## 0 U1_pmp2d_defined_all_except_valid_and_ready and
 //	t ## 0 U2_pmp2d_defined_all_except_valid_and_ready and
+
+
 	t ## 0 state_equivalence() and
 	t ## 0 input_equivalence() and
 	t ## 1 input_equivalence2() and
 	t ## 2 input_equivalence2() and
+
+
 //	t ## 1 U1_pmp2d_defined_all_except_valid_and_ready and
 //	t ## 1 U2_pmp2d_defined_all_except_valid_and_ready 
 	//Discuss Dino: transition from blocking to idle should not send pmp2d = h2pmp
@@ -179,11 +185,13 @@ endfunction
 	//t ## 0 h2pmp_all_equal_except_address_and_data and
 	//t ## 1 h2pmp_all_equal_except_address_and_data and
 	//t ## 2 h2pmp_all_equal_except_address_and_data and
-	t ## 0 h2pmp_all_equal_except_data and
+	//t ## 0 h2pmp_all_equal_except_data and
 	//t ## 1 h2pmp_all_equal_except_data and
 	//t ## 2 h2pmp_all_equal_except_data and
 	//Assume illegal messages by err of pmp
-	t ## 0 master_sends_illegal_messages //and
+	//t ## 0 master_sends_illegal_messages //and
+	//Replacing previous function with symbolic pmp
+	t ## 0 pmp_entry_config_new(4'b0010, U1.tl_h2pmp.a_address, U1.tl_h2pmp.a_opcode )
 	//t ## 1 master_sends_illegal_messages
 	implies
 	t ## 0 output_equivalence() and
@@ -200,8 +208,8 @@ endfunction
 	//h2pmp_limitations has been added to limit h2pmp in some cases. 
 	t ## 0 h2pmp_limitations and
 	t ## 0 state_equivalence2() and
-	t ## 0 input_equivalence() and
-	t ## 1 input_equivalence2() and
+	t ## 0 input_equivalence2() and
+	t ## 1 input_equivalence2() //and
 	//t ## 2 input_equivalence2() and
 	//t ## 1 U1_pmp2d_defined_all_except_valid_and_ready and
  	//t ## 1 U2_pmp2d_defined_all_except_valid_and_ready 
@@ -219,7 +227,7 @@ endfunction
 	//Assume illegal messages by err of pmp
 	// 2) We want to assume that both instances have an erroues message.
 	//   We trust pmp therefor we expect it to catch access that are not allowed
-	t ## 0 master_sends_illegal_messages //and
+	//t ## 0 master_sends_illegal_messages //and
 	//t ## 1 master_sends_illegal_messages
 	implies
 	t ## 0 output_equivalence() and

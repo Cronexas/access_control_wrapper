@@ -18,6 +18,8 @@ module miter_top (
 );
 
 logic rst_n;
+logic [3:0] Register_d;
+logic [3:0] Register_q;
 assign rst_n = !rst;
 
 access_control_wrapper U1(
@@ -43,5 +45,16 @@ access_control_wrapper U2(
   .tl_pmp2d(tl_pmp2d_2),
   .tl_pmp2h(tl_pmp2h_2)
 );
+
+always_ff @(posedge clk, negedge rst_n) 
+begin     
+    if (!rst_n) begin                    
+	Register_q <= 1'b0;
+    end else begin
+	Register_q <= Register_d;
+    end
+end
+
+assign Register_d = Register_q;
 
 endmodule // miter_top
