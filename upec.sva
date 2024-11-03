@@ -175,8 +175,8 @@ endfunction
 	t ## 2 input_equivalence2() and
 
 
-//	t ## 1 U1_pmp2d_defined_all_except_valid_and_ready and
-//	t ## 1 U2_pmp2d_defined_all_except_valid_and_ready 
+	//t ## 1 U1_pmp2d_defined_all_except_valid_and_ready and
+	//t ## 1 U2_pmp2d_defined_all_except_valid_and_ready 
 	//Discuss Dino: transition from blocking to idle should not send pmp2d = h2pmp
 	//t ## 0 no_go_to_idle and
 	//t ## 1 no_go_to_idle and
@@ -191,7 +191,9 @@ endfunction
 	//Assume illegal messages by err of pmp
 	//t ## 0 master_sends_illegal_messages //and
 	//Replacing previous function with symbolic pmp
-	t ## 0 pmp_entry_config_new(4'b0010, U1.tl_h2pmp.a_address, U1.tl_h2pmp.a_opcode )
+	//t ## 0 pmp_entry_config_new(4'b0010, U1.tl_h2pmp.a_address, U1.tl_h2pmp.a_opcode )
+	//t ## 0 pmp_entry_config_new(4'b0010, U1.tl_h2pmp.a_address, U1.tl_h2pmp.a_opcode )
+	t ## 0 pmp_memory_protection_state_new()
 	//t ## 1 master_sends_illegal_messages
 	implies
 	t ## 0 output_equivalence() and
@@ -209,7 +211,8 @@ endfunction
 	t ## 0 h2pmp_limitations and
 	t ## 0 state_equivalence2() and
 	t ## 0 input_equivalence2() and
-	t ## 1 input_equivalence2() //and
+	t ## 1 input_equivalence2() and
+	t ## 0 pmp_memory_protection_state_new()
 	//t ## 2 input_equivalence2() and
 	//t ## 1 U1_pmp2d_defined_all_except_valid_and_ready and
  	//t ## 1 U2_pmp2d_defined_all_except_valid_and_ready 

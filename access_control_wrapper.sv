@@ -6,7 +6,7 @@ import access_control_wrapper_reg_pkg::*;
 //Rename to fit Filename and Modulename
 module access_control_wrapper # (
 parameter logic [23:0]		BaseAddress = 24'b0,
-parameter logic			NumPMPEntriesSelecter = 1'b0
+parameter logic			NumPMPEntriesSelecter = 1'b0 //Default 0
 ) (
 	input logic                    	rst,
 	input logic                    	clk,
@@ -21,28 +21,6 @@ parameter logic			NumPMPEntriesSelecter = 1'b0
 	input  tlul_pkg::tl_h2d_t      	tl_cpu2csr,              		//cpu writes the cfg and address register, seperate interface for security
 	output tlul_pkg::tl_d2h_t     	tl_csr2cpu = '0             	//wrapper send denied address and opcode to cpu  
 );
-
-/* ADDRESS SPACE DISCUSSION
-We have either 16 or 64 address entries.
-->Either 4 or 16 Registers for config
-->Either 20 or 80 Registers (32 Bit)
-->Either 80 or 320 Byte addressable
--> Next power of 2 is 512 Bytes.
-->2 power 9 address space.
-Starting with special addresses
--> Rewritting of TLUL Interface
-
-*/
-//Old address range
-/*
-parameter int unsigned 		go_idle_addr = 240;
-parameter int unsigned 		return_denied_reg_addr = 241;
-parameter int unsigned 		return_denied_reg_type = 242;
-parameter int unsigned 		return_current_state = 243;
-parameter int unsigned 		INTR_STATE_address = 244;
-parameter int unsigned		INTR_ENABLE_address = 245;
-parameter int unsigned		INTR_TEST_address = 246;
-*/
 //New address range
 parameter int unsigned 		Number32BitRegisterNonPMP = 7;
 parameter int unsigned 		NumberBytesRegisterNonPMP = 4*Number32BitRegisterNonPMP;
@@ -61,7 +39,7 @@ parameter int unsigned          PMPGranularity = 0;
 parameter int unsigned          PMPNumChan = 1;
 parameter int unsigned		NumberConfigEntries =  $ceil(AdjustedPMPNumRegions/4);
 parameter int unsigned		TotalIbexCSR = AdjustedPMPNumRegions + NumberConfigEntries;
-
+parameter logic[31:0]		OneAs32Bit = 32'h00000001;
 
 
 parameter int unsigned 		max_pmp_related_addr = 959;// 0 to 959 bytes->960 Bytes -> 192 32 Bit Registers (1x cfg, 4x address)
@@ -73,8 +51,6 @@ tlul_pkg::tl_d2h_t              tl_err_rsp_cpu_outstanding;
 
 tlul_pkg::tl_d2h_t      	tl_csr2cpu_q;
 tlul_pkg::tl_d2h_t      	tl_csr2cpu_d;  		
-tlul_pkg::tl_h2d_t		tl_cpu2csr_d;
-tlul_pkg::tl_h2d_t		tl_cpu2csr_q;
 
 ibex_pkg::pmp_mseccfg_t         csr_pmp_mseccfg = 1'b0;
 ibex_pkg::priv_lvl_e            priv_mode [PMPNumChan] = {2'b00}; 	//user mode
@@ -83,8 +59,6 @@ ibex_pkg::priv_lvl_e            priv_mode [PMPNumChan] = {2'b00}; 	//user mode
 logic [33:0]             	pmp_req_addr [PMPNumChan];     
 ibex_pkg::pmp_req_e  		pmp_req_type [PMPNumChan];
 logic                    	pmp_req_err  [PMPNumChan];
-//logic                    	pmp_reg_err_d  [PMPNumChan];
-//logic                    	pmp_reg_err_q  [PMPNumChan];  
 //PMP cfg signals
 ibex_pkg::pmp_cfg_t      	csr_pmp_cfg   [AdjustedPMPNumRegions];
 logic [33:0]            	csr_pmp_addr  [AdjustedPMPNumRegions];
@@ -113,6 +87,7 @@ logic                           irq_d = 1'b0;
 logic[1:0]			current_state_q;
 logic 		            	go_to_idle_d = 1'b0;
 logic 			    	go_to_idle_q;
+logic 				valid_size_matching=1'b0;
   
 logic                           err_rsp_sent_d = 1'b0;
 logic                           err_rsp_sent_q;
@@ -151,16 +126,35 @@ logic				INTR_ENABLE_we_q= 1'b0;
 logic				INTR_TEST_we_q= 1'b0;
 
 logic				wrong_tlul_opcode = 1'b0;
+logic[31:0]			address_matching_size = 32'h00000001;
 
 tl_d_op_e                       ack_opcode_d;
 tl_d_op_e                       ack_opcode_q;
+
+//This is for debugging using symbolic pmp!
+logic [3:0] Register_d;
+logic [3:0] Register_q;
+
+
+always_ff @(posedge clk, negedge rst) 
+begin     
+    if (!rst) begin                    
+	Register_q <= 1'b0;
+    end else begin
+	Register_q <= Register_d;
+    end
+end
+
+assign Register_d = Register_q;
+
 
 //Interrupt-Interface
 access_control_wrapper_reg2hw_t reg2hw;
 access_control_wrapper_hw2reg_t hw2reg;
    
   //////////////////////////////// --instantiations
-for (genvar i= 0;i<=TotalIbexCSR;i++) begin : gen_pmp_csr
+//Upec found a HW BUG, should be less than 80 register (0 to 79)
+for (genvar i= 0;i<TotalIbexCSR;i++) begin : gen_pmp_csr
 	ibex_csr #()
 	pmp_csr (
 	.clk_i(clk),
@@ -213,38 +207,10 @@ endgenerate
 generate
 	for (i = 0; i < AdjustedPMPNumRegions; i = i + 1) begin : gen_csr_pmp_addr
 		  assign csr_pmp_addr[i] = {rd_data_csr[i+NumberConfigEntries], 2'b0 };
+		  //assign csr_pmp_addr[i] = {2'b0 ,rd_data_csr[i+NumberConfigEntries] };
 	end
 endgenerate
 
-
-//Functions to support CPU Interface
-//function int count_bits_logic(logic [3:0] value);
-	
-//endfunction
-  
-  ////////////////////////////////  -- CPU Interface
-// ERROR RESPONSE
-//We might consider opentitan.org/book/hw/ip/tlul/index.html#explicit-error-cases as default check for errors.
-//We basically use the error response unit for each interface (cpu2csr vv + h2d vv
-//Check lowRISC/opentitan/blob/master/hw/ip/tlul_socket_1n.sv for example of including
-
-//Discussion of CPU-Interface
-//We have atleast 32 bit address range; we consider 64 bit address range later.
-//We assume byte addressable, for now we only implement 4 byte package and change the range of address to this scheme.
-//For now we reserve the  6 least significant bits for special cases.
-//PMP supports up to 64 Config register (8 bit each) -> 16*32 bit register , with byte addressable we have again 64 address->6 bits
-//Each address written to PMP is 32 bit long. We have a total of 64 entries. They have to be byte addressable, therefor we need 256*8bit -> 8bits
-//Total number of 20 Bits out of 32 Bits available for addressspace
-//Reservation of Address: MaskSpecialCases: 0x0000 003F MaskPMPConfig: 0x0000 3FC0 MaskPMPEntry: 0x003F C000tl_cpu2csr
-
-//Minimization Note: We might minimize the code size by combining some cases. This might also reduce combinational depth
-//Also consider assigning some signals in a for loop, this is necessary for generic architecture. For v0.1.0 only 32 Bit support. 
-
-//v0.0.2 considerations.
-//I thought before implementing that each interface has full address space.
-//Now reimplementing using a base address (for now all 0s [32:10]) and [9:0]
-//Total Address space is 2pow(10)->1024 Possible Byte address -> 192 pmp addresses (32bit) + 98 config (32bit)
-//
  always_comb begin
 	irq_q = INTR_STATE_q & INTR_ENABLE_q;
 	tl_csr2cpu.a_ready = !ack_outstanding_q & !activate_cpu_err_resp_q;
@@ -258,21 +224,29 @@ endgenerate
 	go_to_idle_d = 1'b0;
 	activate_cpu_err_resp_d = 1'b0;
 	wr_data_csr = '0;
-	if (tl_cpu2csr.a_valid && tl_csr2cpu.a_ready) begin
-		tl_cpu2csr_d = tl_cpu2csr;
+	//
+	a_size_shift_value[31:2] = '{30{1'b0}};
+	a_size_shift_value[1:0]= tl_cpu2csr.a_size[1:0];
+	a_size_int  = constant_one << a_size_shift_value;
+	address_matching_size = (tl_cpu2csr.a_address &  ( a_size_int  - 1 ) );
+	if (address_matching_size == 32'h0) begin
+		valid_size_matching = 1'b1;
+	end else begin
+		valid_size_matching = 1'b0;
+	end
+	//valid_size_matching = &(tl_cpu2csr.a_address &&  ( ( OneAs32Bit << tl_cpu2csr.a_size) ) ) ? 1'b0 : 1'b1;
+	if (tl_cpu2csr.a_valid && tl_csr2cpu.a_ready && valid_size_matching && (tl_cpu2csr.a_address[31:10] == BaseAddress[23:0]) ) begin
 		source_id_d = tl_cpu2csr.a_source;
 		//Address of config register, relative to base address of ibex csr, relative here is also absolute
 		number_bits_a_mask = $countones(tl_cpu2csr.a_mask);
 		//absolute address in ibex csr it's byte addressable, but we direct addressing of bytes is not supported. therefor using masking bits and PartialData
 		//cpu_addr_reg_abs = '{'{24{1'b0}},tl_cpu2csr.a_address[9:2]};
 		cpu_addr_reg_abs = {24'b0,tl_cpu2csr.a_address[9:2]};
-		a_size_shift_value[31:2] = '{30{1'b0}};
-		a_size_shift_value[1:0]= tl_cpu2csr.a_size[1:0];
-		a_size_int  = constant_one << a_size_shift_value;
-		//For now PutFullData is implemented
-		//For Change from v0.0.9 to v0.1 we combined the PutFullData case and PutPartialData Case which uses all byte lanes. This reduces complexity.
-		//if ( (  tl_cpu2csr.a_opcode == PutFullData || tl_cpu2csr.a_opcode == PutPartialData ) && ( tl_cpu2csr.a_size == 2'b10 ) && ( tl_cpu2csr.a_mask == 4'b1111 ) ) begin  
-		if ( (  tl_cpu2csr.a_opcode == PutFullData || tl_cpu2csr.a_opcode == PutPartialData ) && ( tl_cpu2csr.a_size == 2'b10 ) && ( &tl_cpu2csr.a_mask ) && (tl_cpu2csr.a_address[31:10] == BaseAddress[23:0]) ) begin                                                                  
+		
+		//Backup of previous implementation
+		//if ( (  tl_cpu2csr.a_opcode == PutFullData || tl_cpu2csr.a_opcode == PutPartialData ) && ( tl_cpu2csr.a_size == 2'b10 ) && ( &tl_cpu2csr.a_mask ) && (tl_cpu2csr.a_address[31:10] == BaseAddress[23:0]) ) begin                                                                  
+		if ( (  tl_cpu2csr.a_opcode == PutFullData || tl_cpu2csr.a_opcode == PutPartialData ) && ( tl_cpu2csr.a_size == 2'b10 )  ) begin                                                                  
+			
 			ack_opcode_d = AccessAck;
 			//Check if it's a entry for 
 			if ( cpu_addr_reg_abs < Number32BitRegisterNonPMP) begin
@@ -310,7 +284,9 @@ endgenerate
 			end
 		//Here we have a actual PartialData, Specification of TileLink 4.6 Byte Lanes indicates that there are no spaces between active byte lanes
 		//For now we allow it here to address with inactive bytelanes between active bytelanes
-		end else if ( ( tl_cpu2csr.a_opcode == PutPartialData ) && ( ( tl_cpu2csr.a_size < 2'b10 ) ) && ( number_bits_a_mask == a_size_int ) && (tl_cpu2csr.a_address[31:10] == BaseAddress[23:0]) ) begin
+		//previous implementation
+		//end else if ( ( tl_cpu2csr.a_opcode == PutPartialData ) && ( ( tl_cpu2csr.a_size < 2'b10 ) ) && ( number_bits_a_mask == a_size_int ) ) begin
+		end else if ( ( tl_cpu2csr.a_opcode == PutPartialData ) && ( ( tl_cpu2csr.a_size < 2'b10 ) ) ) begin
 			//Check if the byte addressing is correct. If the length of the data +  start byte of the data exceeds max bytes supported, we return an error.
 			ack_opcode_d = AccessAck;
 			if ( cpu_addr_reg_abs < Number32BitRegisterNonPMP )begin
@@ -354,7 +330,7 @@ endgenerate
 			end
 		
 		//For this case we need to pass csr2cpu through a register, to be able to send it in the next clock cycle.
-		end else if (tl_cpu2csr.a_opcode == Get && ( number_bits_a_mask == a_size_int ) && (tl_cpu2csr.a_address[31:10] == BaseAddress[23:0]) ) begin 
+		end else if (tl_cpu2csr.a_opcode == Get && ( number_bits_a_mask == a_size_int ) ) begin 
 			ack_opcode_d = AccessAckData;
 			if ( cpu_addr_reg_abs < Number32BitRegisterNonPMP ) begin
 				case (cpu_addr_reg_abs)
@@ -405,7 +381,7 @@ endgenerate
 			activate_cpu_err_resp_d = 1'b1;
 		end
 	end else begin
-		tl_cpu2csr_d = tl_cpu2csr_q;
+		activate_cpu_err_resp_d = 1'b1;
 	end
 	
 	if (ack_outstanding_q) begin
@@ -490,7 +466,6 @@ logic denied_req_type_read_d, denied_req_type_read_q;
 	INTR_STATE_we_q <= 1'b0;
 	INTR_ENABLE_we_q <= 1'b0;
 	INTR_TEST_we_q <= 1'b0;
-	tl_cpu2csr_q <= '0;
     end else begin
 	ack_opcode_q <= ack_opcode_d;
 	source_id_q <= source_id_d;
@@ -505,7 +480,6 @@ logic denied_req_type_read_d, denied_req_type_read_q;
 	activate_cpu_err_resp_q <= activate_cpu_err_resp_d;
 	//pmp_reg_err_q[0] <= pmp_reg_err_d[0];
 	//tl_err_rsp_device_outstanding_q <= tl_err_rsp_device_outstanding_d;
-	tl_cpu2csr_q <= tl_cpu2csr_d;
 	INTR_STATE_q <= INTR_STATE_d;
 	INTR_ENABLE_q <= INTR_ENABLE_d;
 	INTR_TEST_q <= INTR_TEST_d;
@@ -550,12 +524,15 @@ end
 			//tl_pmp2d.d_ready = tl_h2pmp.d_ready;             
 			tl_pmp2h = tl_d2pmp;
 			if (tl_h2pmp.a_valid && tl_d2pmp.a_ready) begin 
-				pmp_req_addr [0] = {tl_h2pmp.a_address,2'b0};
-			
+				pmp_req_addr [0] = {2'b0,tl_h2pmp.a_address};
+				
+				//pmp_req_addr [0] = {tl_h2pmp.a_address, 2'b0};
 				
 				if (pmp_req_err[0] || wrong_tlul_opcode) begin                                            
 					next_state = block_start;
 					tl_pmp2d.a_valid = 1'b0;
+					//Added to fullfil spec
+					tl_pmp2d.d_ready = tl_h2pmp.d_ready;
 					denied_reg_addr_d = tl_h2pmp.a_address;
 					denied_reg_type_d = tl_h2pmp.a_opcode;
 					irq_d = 1'b1;
@@ -596,10 +573,12 @@ end
 			tl_pmp2h.a_ready = 1'b0;
 			if (tl_h2pmp.d_ready & go_to_idle_d) begin
 				next_state = idle;
+				tl_pmp2d.d_ready = tl_h2pmp.d_ready;
 			end else if (!tl_h2pmp.d_ready & go_to_idle_d) begin
 				next_state = block_idle;
 			end else if (tl_h2pmp.d_ready & !go_to_idle_d) begin
 				next_state = block_err;
+				tl_pmp2d.d_ready = tl_h2pmp.d_ready;
 			end else if (!tl_h2pmp.d_ready & !go_to_idle_d) begin
 				next_state = block_start;				
 			end
@@ -610,11 +589,13 @@ end
 		begin
 			if(tl_h2pmp.d_ready) begin
 				next_state = idle;
+				tl_pmp2d.d_ready = tl_h2pmp.d_ready;
 			end else begin
 				next_state = block_idle;
+				tl_pmp2d.d_ready = 1'b0;
 			end
 			tl_pmp2d.a_valid = 1'b0;
-			tl_pmp2d.d_ready = 1'b0;
+			
 			tl_pmp2h.d_valid = 1'b1;
 			tl_pmp2h.d_opcode = tl_err_rsp_device_outstanding.d_opcode;
 			tl_pmp2h.d_param = tl_err_rsp_device_outstanding.d_param;
@@ -649,9 +630,10 @@ end
 			end else begin
 				next_state = block_err;
 				tl_pmp2d.a_valid = 1'b0;
-				tl_pmp2d.d_ready = 1'b0;
+				
 				tl_pmp2h.a_ready = 1'b0;
 			end
+			tl_pmp2d.d_ready = tl_h2pmp.d_ready;
 		end
     endcase
   end

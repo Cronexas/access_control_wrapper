@@ -45,7 +45,7 @@ access_control_wrapper U2(
   .tl_pmp2d(tl_pmp2d_2),
   .tl_pmp2h(tl_pmp2h_2)
 );
-
+/*
 always_ff @(posedge clk, negedge rst_n) 
 begin     
     if (!rst_n) begin                    
@@ -56,5 +56,5 @@ begin
 end
 
 assign Register_d = Register_q;
-
+*/
 endmodule // miter_top

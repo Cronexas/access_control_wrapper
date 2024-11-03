@@ -10,14 +10,14 @@ import ibex_pkg::*;
 module ACW_property_suite #(BaseAddressTB,NumPMPEntriesSelecterTB) (rst,clk,irq_q,tl_h2pmp, tl_pmp2h,tl_d2pmp,tl_pmp2d,tl_cpu2csr, tl_csr2cpu,csr_pmp_cfg,current_state,wr_en_csr, rd_data_csr, activate_cpu_err_resp_q, 
 ack_outstanding_q,pmp_req_err, err_rsp_sent_q, go_to_idle_q, go_to_idle_d, irq_d, tl_err_rsp_device_outstanding, number_bits_a_mask, a_size_int, activate_cpu_err_resp_d,
 denied_reg_addr_q, ack_outstanding_d, denied_reg_type_q, intr_from_prim_hw_intr, INTR_STATE_q, INTR_ENABLE_q ,INTR_TEST_q, INTR_ENABLE_d, INTR_STATE_d, INTR_TEST_d, next_state, 
-pmp_req_addr, pmp_req_type
+pmp_req_addr, pmp_req_type, valid_size_matching
 );
 
 //Parameters aa
 parameter int unsigned          PMPGranularity = 0;    
 parameter int unsigned          PMPNumChan = 1;
 parameter int unsigned          PMPNumRegions = 16;
-parameter logic			NumPMPEntriesSelecterTB = 1'b1;// 
+parameter logic			NumPMPEntriesSelecterTB = 1'b0;// 
 parameter int unsigned 		Number32BitRegisterNonPMP = 7;
 parameter int unsigned 		NumberBytesRegisterNonPMP = 4*Number32BitRegisterNonPMP;
 parameter logic[23:0]		BaseAddressTB= 24'b0;// 
@@ -79,6 +79,7 @@ input logic 				INTR_STATE_d;
 input logic				INTR_TEST_d;
 input logic [33:0]             		pmp_req_addr [PMPNumChan];     
 input ibex_pkg::pmp_req_e  		pmp_req_type [PMPNumChan];
+input logic 				valid_size_matching;
 //input logic 				pmp_reg_err_q;
 //input logic 				pmp_reg_err_d;
 //{} 
@@ -214,6 +215,7 @@ input ibex_pkg::pmp_req_e  		pmp_req_type [PMPNumChan];
 //perspective from CPU	
 `include  "access_controller_TLUL_write.sva"
 `include  "access_controller_TLUL_read.sva"
+//Will come back to those later.
 `include  "access_controller_valid_state_transitions.sva"
 `include  "access_controller_invalid_state_transitions.sva"
 `include  "access_controll_wrapper_pmp_checks.sva"

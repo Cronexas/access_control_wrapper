@@ -47,6 +47,66 @@ state_equivalence = (
   (U1.gen_pmp_csr[17].pmp_csr.rdata_q == U2.gen_pmp_csr[17].pmp_csr.rdata_q) &&
   (U1.gen_pmp_csr[18].pmp_csr.rdata_q == U2.gen_pmp_csr[18].pmp_csr.rdata_q) &&
   (U1.gen_pmp_csr[19].pmp_csr.rdata_q == U2.gen_pmp_csr[19].pmp_csr.rdata_q) &&
+  /*(U1.gen_pmp_csr[20].pmp_csr.rdata_q == U2.gen_pmp_csr[20].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[21].pmp_csr.rdata_q == U2.gen_pmp_csr[21].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[22].pmp_csr.rdata_q == U2.gen_pmp_csr[22].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[23].pmp_csr.rdata_q == U2.gen_pmp_csr[23].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[24].pmp_csr.rdata_q == U2.gen_pmp_csr[24].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[25].pmp_csr.rdata_q == U2.gen_pmp_csr[25].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[26].pmp_csr.rdata_q == U2.gen_pmp_csr[26].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[27].pmp_csr.rdata_q == U2.gen_pmp_csr[27].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[28].pmp_csr.rdata_q == U2.gen_pmp_csr[28].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[29].pmp_csr.rdata_q == U2.gen_pmp_csr[29].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[30].pmp_csr.rdata_q == U2.gen_pmp_csr[30].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[31].pmp_csr.rdata_q == U2.gen_pmp_csr[31].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[32].pmp_csr.rdata_q == U2.gen_pmp_csr[32].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[33].pmp_csr.rdata_q == U2.gen_pmp_csr[33].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[34].pmp_csr.rdata_q == U2.gen_pmp_csr[34].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[35].pmp_csr.rdata_q == U2.gen_pmp_csr[35].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[36].pmp_csr.rdata_q == U2.gen_pmp_csr[36].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[37].pmp_csr.rdata_q == U2.gen_pmp_csr[37].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[38].pmp_csr.rdata_q == U2.gen_pmp_csr[38].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[39].pmp_csr.rdata_q == U2.gen_pmp_csr[39].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[40].pmp_csr.rdata_q == U2.gen_pmp_csr[40].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[41].pmp_csr.rdata_q == U2.gen_pmp_csr[41].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[42].pmp_csr.rdata_q == U2.gen_pmp_csr[42].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[43].pmp_csr.rdata_q == U2.gen_pmp_csr[43].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[44].pmp_csr.rdata_q == U2.gen_pmp_csr[44].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[45].pmp_csr.rdata_q == U2.gen_pmp_csr[45].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[46].pmp_csr.rdata_q == U2.gen_pmp_csr[46].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[47].pmp_csr.rdata_q == U2.gen_pmp_csr[47].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[48].pmp_csr.rdata_q == U2.gen_pmp_csr[48].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[49].pmp_csr.rdata_q == U2.gen_pmp_csr[49].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[50].pmp_csr.rdata_q == U2.gen_pmp_csr[50].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[51].pmp_csr.rdata_q == U2.gen_pmp_csr[51].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[52].pmp_csr.rdata_q == U2.gen_pmp_csr[52].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[53].pmp_csr.rdata_q == U2.gen_pmp_csr[53].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[54].pmp_csr.rdata_q == U2.gen_pmp_csr[54].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[55].pmp_csr.rdata_q == U2.gen_pmp_csr[55].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[56].pmp_csr.rdata_q == U2.gen_pmp_csr[56].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[57].pmp_csr.rdata_q == U2.gen_pmp_csr[57].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[58].pmp_csr.rdata_q == U2.gen_pmp_csr[58].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[59].pmp_csr.rdata_q == U2.gen_pmp_csr[59].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[60].pmp_csr.rdata_q == U2.gen_pmp_csr[60].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[61].pmp_csr.rdata_q == U2.gen_pmp_csr[61].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[62].pmp_csr.rdata_q == U2.gen_pmp_csr[62].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[63].pmp_csr.rdata_q == U2.gen_pmp_csr[63].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[64].pmp_csr.rdata_q == U2.gen_pmp_csr[64].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[65].pmp_csr.rdata_q == U2.gen_pmp_csr[65].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[66].pmp_csr.rdata_q == U2.gen_pmp_csr[66].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[67].pmp_csr.rdata_q == U2.gen_pmp_csr[67].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[68].pmp_csr.rdata_q == U2.gen_pmp_csr[68].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[69].pmp_csr.rdata_q == U2.gen_pmp_csr[69].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[70].pmp_csr.rdata_q == U2.gen_pmp_csr[70].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[71].pmp_csr.rdata_q == U2.gen_pmp_csr[71].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[72].pmp_csr.rdata_q == U2.gen_pmp_csr[72].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[73].pmp_csr.rdata_q == U2.gen_pmp_csr[73].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[74].pmp_csr.rdata_q == U2.gen_pmp_csr[74].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[75].pmp_csr.rdata_q == U2.gen_pmp_csr[75].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[76].pmp_csr.rdata_q == U2.gen_pmp_csr[76].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[77].pmp_csr.rdata_q == U2.gen_pmp_csr[77].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[78].pmp_csr.rdata_q == U2.gen_pmp_csr[78].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[79].pmp_csr.rdata_q == U2.gen_pmp_csr[79].pmp_csr.rdata_q) &&*/
   (U1.go_to_idle_q == U2.go_to_idle_q) &&
   (U1.source_id_q == U2.source_id_q) &&
   (U1.tl_cpu2csr_q == U2.tl_cpu2csr_q) &&
@@ -73,28 +133,33 @@ state_equivalence2 = (
   (U1.ack_opcode_q == U2.ack_opcode_q) &&
   (U1.ack_outstanding_q == U2.ack_outstanding_q) &&
   (U1.activate_cpu_err_resp_q == U2.activate_cpu_err_resp_q) &&
-  //(U1.cpu_error_response.err_instr_type == U2.cpu_error_response.err_instr_type) && //First state causing an "error" (Propagation (P) alert)
-  //(U1.cpu_error_response.err_opcode == U2.cpu_error_response.err_opcode) &&
-  //(U1.cpu_error_response.err_req_pending == U2.cpu_error_response.err_req_pending) &&
+  /*Start of uncommented*/
+  (U1.cpu_error_response.err_instr_type == U2.cpu_error_response.err_instr_type) && //First state causing an "error" (Propagation (P) alert)
+  (U1.cpu_error_response.err_opcode == U2.cpu_error_response.err_opcode) &&
+  (U1.cpu_error_response.err_req_pending == U2.cpu_error_response.err_req_pending) &&
   // 3) This is an internal signal of the cpu_error_response. We expect it to work.
-  //(U1.cpu_error_response.err_rsp_pending == U2.cpu_error_response.err_rsp_pending) &&
-  //(U1.cpu_error_response.err_size == U2.cpu_error_response.err_size) &&
-  //(U1.cpu_error_response.err_source == U2.cpu_error_response.err_source) && P alert
+  (U1.cpu_error_response.err_rsp_pending == U2.cpu_error_response.err_rsp_pending) &&
+  (U1.cpu_error_response.err_size == U2.cpu_error_response.err_size) &&
+  (U1.cpu_error_response.err_source == U2.cpu_error_response.err_source) && //P alert
+  /*End of uncommented */
   (U1.current_state == U2.current_state) &&
   (U1.denied_addr_read_q == U2.denied_addr_read_q) &&
+  /*Start of uncommented*/
   //Address can be different
-  //(U1.denied_reg_addr_q == U2.denied_reg_addr_q) &&
-  //(U1.denied_reg_type_q == U2.denied_reg_type_q) &&
+  //(U1.denied_reg_addr_q == U2.denied_reg_addr_q) && //We allow difference in OPCODE in the first CC, therefor in the next CC, those values are assumed differently.
+  //(U1.denied_reg_type_q == U2.denied_reg_type_q) && //We allow difference in OPCODE in the first CC, therefor in the next CC, those values are assumed differently.
   // We dont care about any different internal states as long as the returned tile link message is correct!
+  //(U1.err_resp_wrapper.err_instr_type == U2.err_resp_wrapper.err_instr_type) && //We allowed difference her in first CC. Therefor it's also different in in the next CC.
   //We trust OpenTitan enough, to expect it works.
-  //(U1.err_resp_wrapper.err_instr_type == U2.err_resp_wrapper.err_instr_type) &&
-  //(U1.err_resp_wrapper.err_opcode == U2.err_resp_wrapper.err_opcode) &&
-  //(U1.err_resp_wrapper.err_req_pending == U2.err_resp_wrapper.err_req_pending) &&
-  //(U1.err_resp_wrapper.err_rsp_pending == U2.err_resp_wrapper.err_rsp_pending) &&
-  //(U1.err_resp_wrapper.err_size == U2.err_resp_wrapper.err_size) &&
-  //(U1.err_resp_wrapper.err_source == U2.err_resp_wrapper.err_source) &&
+  //(U1.err_resp_wrapper.err_opcode == U2.err_resp_wrapper.err_opcode) && //We allow difference in OPCODE in the first CC, therefor in the next CC, those values are assumed differently.
+  (U1.err_resp_wrapper.err_req_pending == U2.err_resp_wrapper.err_req_pending) &&
+  (U1.err_resp_wrapper.err_rsp_pending == U2.err_resp_wrapper.err_rsp_pending) &&
+  //(U1.err_resp_wrapper.err_size == U2.err_resp_wrapper.err_size) && //We allow difference in OPCODE in the first CC, therefor in the next CC, those values are assumed differently.
+  //(U1.err_resp_wrapper.err_source == U2.err_resp_wrapper.err_source) && //We allow difference in OPCODE in the first CC, therefor in the next CC, those values are assumed differently.
   (U1.err_rsp_sent_q == U2.err_rsp_sent_q) &&
-  //Added all CSRs
+  /*End of uncommented */
+
+   //Added all CSRs
   (U1.gen_pmp_csr[0].pmp_csr.rdata_q == U2.gen_pmp_csr[0].pmp_csr.rdata_q) &&
   (U1.gen_pmp_csr[1].pmp_csr.rdata_q == U2.gen_pmp_csr[1].pmp_csr.rdata_q) &&
   (U1.gen_pmp_csr[2].pmp_csr.rdata_q == U2.gen_pmp_csr[2].pmp_csr.rdata_q) &&
@@ -115,6 +180,66 @@ state_equivalence2 = (
   (U1.gen_pmp_csr[17].pmp_csr.rdata_q == U2.gen_pmp_csr[17].pmp_csr.rdata_q) &&
   (U1.gen_pmp_csr[18].pmp_csr.rdata_q == U2.gen_pmp_csr[18].pmp_csr.rdata_q) &&
   (U1.gen_pmp_csr[19].pmp_csr.rdata_q == U2.gen_pmp_csr[19].pmp_csr.rdata_q) &&
+  /*(U1.gen_pmp_csr[20].pmp_csr.rdata_q == U2.gen_pmp_csr[20].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[21].pmp_csr.rdata_q == U2.gen_pmp_csr[21].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[22].pmp_csr.rdata_q == U2.gen_pmp_csr[22].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[23].pmp_csr.rdata_q == U2.gen_pmp_csr[23].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[24].pmp_csr.rdata_q == U2.gen_pmp_csr[24].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[25].pmp_csr.rdata_q == U2.gen_pmp_csr[25].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[26].pmp_csr.rdata_q == U2.gen_pmp_csr[26].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[27].pmp_csr.rdata_q == U2.gen_pmp_csr[27].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[28].pmp_csr.rdata_q == U2.gen_pmp_csr[28].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[29].pmp_csr.rdata_q == U2.gen_pmp_csr[29].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[30].pmp_csr.rdata_q == U2.gen_pmp_csr[30].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[31].pmp_csr.rdata_q == U2.gen_pmp_csr[31].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[32].pmp_csr.rdata_q == U2.gen_pmp_csr[32].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[33].pmp_csr.rdata_q == U2.gen_pmp_csr[33].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[34].pmp_csr.rdata_q == U2.gen_pmp_csr[34].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[35].pmp_csr.rdata_q == U2.gen_pmp_csr[35].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[36].pmp_csr.rdata_q == U2.gen_pmp_csr[36].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[37].pmp_csr.rdata_q == U2.gen_pmp_csr[37].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[38].pmp_csr.rdata_q == U2.gen_pmp_csr[38].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[39].pmp_csr.rdata_q == U2.gen_pmp_csr[39].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[40].pmp_csr.rdata_q == U2.gen_pmp_csr[40].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[41].pmp_csr.rdata_q == U2.gen_pmp_csr[41].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[42].pmp_csr.rdata_q == U2.gen_pmp_csr[42].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[43].pmp_csr.rdata_q == U2.gen_pmp_csr[43].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[44].pmp_csr.rdata_q == U2.gen_pmp_csr[44].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[45].pmp_csr.rdata_q == U2.gen_pmp_csr[45].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[46].pmp_csr.rdata_q == U2.gen_pmp_csr[46].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[47].pmp_csr.rdata_q == U2.gen_pmp_csr[47].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[48].pmp_csr.rdata_q == U2.gen_pmp_csr[48].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[49].pmp_csr.rdata_q == U2.gen_pmp_csr[49].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[50].pmp_csr.rdata_q == U2.gen_pmp_csr[50].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[51].pmp_csr.rdata_q == U2.gen_pmp_csr[51].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[52].pmp_csr.rdata_q == U2.gen_pmp_csr[52].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[53].pmp_csr.rdata_q == U2.gen_pmp_csr[53].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[54].pmp_csr.rdata_q == U2.gen_pmp_csr[54].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[55].pmp_csr.rdata_q == U2.gen_pmp_csr[55].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[56].pmp_csr.rdata_q == U2.gen_pmp_csr[56].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[57].pmp_csr.rdata_q == U2.gen_pmp_csr[57].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[58].pmp_csr.rdata_q == U2.gen_pmp_csr[58].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[59].pmp_csr.rdata_q == U2.gen_pmp_csr[59].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[60].pmp_csr.rdata_q == U2.gen_pmp_csr[60].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[61].pmp_csr.rdata_q == U2.gen_pmp_csr[61].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[62].pmp_csr.rdata_q == U2.gen_pmp_csr[62].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[63].pmp_csr.rdata_q == U2.gen_pmp_csr[63].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[64].pmp_csr.rdata_q == U2.gen_pmp_csr[64].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[65].pmp_csr.rdata_q == U2.gen_pmp_csr[65].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[66].pmp_csr.rdata_q == U2.gen_pmp_csr[66].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[67].pmp_csr.rdata_q == U2.gen_pmp_csr[67].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[68].pmp_csr.rdata_q == U2.gen_pmp_csr[68].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[69].pmp_csr.rdata_q == U2.gen_pmp_csr[69].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[70].pmp_csr.rdata_q == U2.gen_pmp_csr[70].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[71].pmp_csr.rdata_q == U2.gen_pmp_csr[71].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[72].pmp_csr.rdata_q == U2.gen_pmp_csr[72].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[73].pmp_csr.rdata_q == U2.gen_pmp_csr[73].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[74].pmp_csr.rdata_q == U2.gen_pmp_csr[74].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[75].pmp_csr.rdata_q == U2.gen_pmp_csr[75].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[76].pmp_csr.rdata_q == U2.gen_pmp_csr[76].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[77].pmp_csr.rdata_q == U2.gen_pmp_csr[77].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[78].pmp_csr.rdata_q == U2.gen_pmp_csr[78].pmp_csr.rdata_q) &&
+  (U1.gen_pmp_csr[79].pmp_csr.rdata_q == U2.gen_pmp_csr[79].pmp_csr.rdata_q) &&*/
   (U1.go_to_idle_q == U2.go_to_idle_q) &&
   (U1.source_id_q == U2.source_id_q) &&
   (U1.tl_cpu2csr_q == U2.tl_cpu2csr_q) &&

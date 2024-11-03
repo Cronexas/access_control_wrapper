@@ -1,17 +1,48 @@
 import tlul_pkg::*;
+// Set the number of defined PMP regions here
+`define NO_OF_PMP_REGIONS 16	//16 (default) or 64
+
+parameter int unsigned PMPRegions = 16;
+logic [7:0] cfg_reg [PMPRegions];//Default 16
+logic [31:0] addr_reg [PMPRegions];//Default 16
+
+
+/*
+We need to assign the configs (NAPOT/X/W/R) and the addresses to different signals.
+*/
+genvar i;
+for (i = 0; i < PMPRegions/4; i = i + 1) 
+begin : gen_csr_pmp_cfg
+		assign cfg_reg[0+i*4] = U1.rd_data_csr[i][7:0];
+		assign cfg_reg[1+i*4] = U1.rd_data_csr[i][15:8];
+		assign cfg_reg[2+i*4] = U1.rd_data_csr[i][23:16];
+		assign cfg_reg[3+i*4] = U1.rd_data_csr[i][31:24];
+end
+for (i = 0; i < PMPRegions; i = i + 1) 
+begin : gen_csr_pmp_addr
+		assign addr_reg[i] = U1.rd_data_csr[i+PMPRegions/4];
+end
+
+
+//assign cfg_reg = U1.rd_data_csr[0:3];
+//assign addr_reg = U1.rd_data_csr[4:19];
 //Macros for PMP address and config registers. Insert the hierachycal signal names here:
-`define PMP_CFG_REG U1.csr_pmp_cfg //same in ACW
-`define PMP_ADDR_REG U1.csr_pmp_addr //same ACW
+`define PMP_CFG_REG cfg_reg //same in ACW
+//`define PMP_ADDR_REG U1.csr_pmp_addr //same ACW
+`define PMP_ADDR_REG addr_reg
 
 //Macros for the symbolic variables for address and register index:
 `define SYMBOLIC_ADDR U1.tl_h2pmp.a_address
-`define SYMBOLIC_REG_INDEX Register_q
+`define SYMBOLIC_REG_INDEX U1.Register_q
 //Link that to the Incoming TL-Message from 
 `define SYMBOLIC_OPERATION U1.tl_h2pmp.a_opcode
 
+`define SYMBOLIC_ADDR2 U2.tl_h2pmp.a_address
+`define SYMBOLIC_REG_INDEX2 U2.Register_q
+`define SYMBOLIC_OPERATION2 U2.tl_h2pmp.a_opcode
 
-// Set the number of defined PMP regions here
-`define NO_OF_PMP_REGIONS 16	
+
+
 
 
 //Look-up table functions for napot range calculations
@@ -94,7 +125,7 @@ function automatic logic[15:0] get_napot_end(logic[3:0] i);
 		32'bxx011111_11111111_11111111_11111111 : 	get_napot_end = 32'b0010_0000_0000_0000_0000_0000_0000_0000;
 		32'bx0111111_11111111_11111111_11111111 : 	get_napot_end = 32'b0100_0000_0000_0000_0000_0000_0000_0000;
 		32'b01111111_11111111_11111111_11111111 : 	get_napot_end = 32'b1000_0000_0000_0000_0000_0000_0000_0000;
-		default: 									get_napot_end = 32'b0000_0000_0000_0000_0000_0000_0000_0000;
+		default: 				        get_napot_end = 32'b0000_0000_0000_0000_0000_0000_0000_0000;
 endcase
 endfunction
 
@@ -208,7 +239,7 @@ endfunction
 
 function automatic pmp_memory_protection_state_new();
 	pmp_memory_protection_state_new = (
-		pmp_entry_config_new(4'b0010, 32'b0, 3'b000)
+		pmp_entry_config_new(`SYMBOLIC_REG_INDEX, `SYMBOLIC_ADDR, `SYMBOLIC_OPERATION) && pmp_entry_config_new(`SYMBOLIC_REG_INDEX2, `SYMBOLIC_ADDR2, `SYMBOLIC_OPERATION2)
 	);
 endfunction
 
@@ -231,3 +262,4 @@ function automatic pmp_entry_config_new(logic[3:0] i, logic [31:0] address, logi
 		pmp_entry_config(i, address, 3'b110));
 	end
 endfunction
+

@@ -26,7 +26,11 @@ property state_transition_1_to_2;
 	
 	t ##0 tl_pmp2d.a_valid == 1'b0 and
 	//h2pmp shouldn't be passed through if we go to blocking state
+	
+	//This causes an error now after UPEC.
+	//Therefor we expect it to be 1'b0
 	t ##0 tl_pmp2d.d_ready == tl_h2pmp.d_ready and
+	//t ##0 tl_pmp2d.d_ready == 1'b0 and
 	//devices to host -> a_ready, diff from spec 
 	pmp2h_d_pass_all and
 	t ##0 tl_pmp2h.a_ready == 1'b1 and
@@ -122,7 +126,7 @@ property state_transition_3_to_1;
 	//t ##0 go_to_idle_q == 1'b1
 	implies
 	t ##0 tl_pmp2d.a_valid == 1'b0 and
-	t ##0 tl_pmp2d.d_ready == 1'b0 and
+	t ##0 tl_pmp2d.d_ready == tl_h2pmp.d_ready and
 	t ##0 tl_pmp2h.d_valid == 1'b1 and
 	t ##0 tl_pmp2h.d_error == 1'b1 and
 	t ##0 tl_pmp2h.a_ready == 1'b0 and
@@ -139,7 +143,7 @@ property state_transition_4_to_4;
 	//t ##0 go_to_idle_q == 1'b0
 	implies
 	t ##0 tl_pmp2d.a_valid == 1'b0 and //holds
-	t ##0 tl_pmp2d.d_ready == 1'b0 and //holds
+	t ##0 tl_pmp2d.d_ready == tl_h2pmp.d_ready and //holds
 	pmp2h_d_pass_all and
 	t ##0 tl_pmp2h.a_ready == 1'b0 and
 	t ##1 current_state == block_err;// and
@@ -159,7 +163,8 @@ property state_transition_4_to_1;
 	pmp2h_d_pass_all and //holds
 	t ##1 tl_pmp2h.a_ready == 1'b0 and
 	*/
-	t ##0 tl_pmp2d == tl_h2pmp and
+	//We removed this behaviour, because we don't check the message when going from 4 to 1.
+	//t ##0 tl_pmp2d == tl_h2pmp and
 	t ##0 tl_d2pmp == tl_pmp2h and
 	t ##1 current_state == idle;
 	//t ##1 err_rsp_sent_q == 1'b0 and

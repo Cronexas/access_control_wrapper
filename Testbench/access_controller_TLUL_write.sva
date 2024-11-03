@@ -10,6 +10,7 @@ property check_pmp_inputs_after_cpu_write_cfg_full_generic(logic [31:0] addr, lo
 	t ##0 tl_cpu2csr.a_valid == 1'b1 and
 	t ##0 tl_cpu2csr.a_size == 2'b10 and
 	t ##0 tl_cpu2csr.a_mask == 4'b1111 and
+	t ##0 valid_size_matching == 1'b1 and
 	t ##0 tl_csr2cpu.a_ready == 1'b1
 	
 	implies 
@@ -44,6 +45,7 @@ for (genvar i = 0; i < NumberConfigEntries ; i++)
 	begin 
 		a_check_pmp_inputs_after_cpu_write_cfg_full_generic : assert property (@(posedge clk) disable iff (rst==0) check_pmp_inputs_after_cpu_write_cfg_full_generic(32'h00000000 + NumberBytesRegisterNonPMP + i*(32'h00000004),32'b11111111111111111111111111110000,i));
 	end
+ 
 property check_pmp_inputs_after_cpu_write_cfg_partial_generic(logic [31:0] addr, logic [31:0] data, int csr_index);
 	ibex_pkg::pmp_cfg_t csr_pmp_cfg_0_freeze;
 	ibex_pkg::pmp_cfg_t csr_pmp_cfg_3_freeze;
@@ -57,6 +59,7 @@ property check_pmp_inputs_after_cpu_write_cfg_partial_generic(logic [31:0] addr,
 	t ##0 tl_cpu2csr.a_valid == 1'b1 and
 	t ##0 tl_cpu2csr.a_size == 2'b01 and
 	t ##0 tl_cpu2csr.a_mask == 4'b0110 and
+	t ##0 valid_size_matching == 1'b1 and
 	t ##0 tl_csr2cpu.a_ready == 1'b1
 	
 	implies 
@@ -95,7 +98,8 @@ property check_pmp_inputs_after_cpu_write_address_full_generic(logic [31:0] addr
 	t ##0 tl_cpu2csr.a_source == 8'h00 and
 	t ##0 tl_cpu2csr.a_valid == 1'b1 and
 	t ##0 tl_cpu2csr.a_size == 2'b10 and
-	t ##0 tl_cpu2csr.a_mask == 4'b1111 and
+	//t ##0 tl_cpu2csr.a_mask == 4'b1111 and
+	t ##0 valid_size_matching == 1'b1 and
 	t ##0 tl_csr2cpu.a_ready == 1'b1 
 	implies
 	t ##1 rd_data_csr[data_csr_index] == data;
@@ -158,7 +162,8 @@ property invalid_cpu_request;
 	(t ##0 tl_cpu2csr.a_opcode == PutFullData or
 	t ##0 tl_cpu2csr.a_opcode == PutPartialData or
 	t ##0 tl_cpu2csr.a_opcode == Get) and
-	t ##0 number_bits_a_mask != a_size_int and
+	//t ##0 number_bits_a_mask != a_size_int and
+	t ##0 valid_size_matching == 1'b0 and
 	t ##0 tl_csr2cpu.a_ready == 1'b1 and
 	t ##0 tl_cpu2csr.a_valid == 1'b1 and
 	t ##1 tl_cpu2csr.d_ready == 1'b1 
