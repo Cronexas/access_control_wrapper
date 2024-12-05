@@ -1,6 +1,35 @@
 ////////////////////////
 ////     CSR2CPU    ////
 ////////////////////////
+property csr_data_get_generic(logic [31:0] addr, int csr_index);
+	//Holds with or without commented assertions	
+	logic [31:0] rd_data_csr_content;
+	logic [7:0] host_source;
+	t ##0 set_freeze(rd_data_csr_content, rd_data_csr[csr_index]) and
+	t ##0 set_freeze(host_source, tl_cpu2csr.a_source) and
+	t ##0 tl_cpu2csr.a_valid == 1'b1 and
+	t ##0 tl_csr2cpu.a_ready == 1'b1 and
+	t ##0 tl_cpu2csr.a_opcode == Get and
+	t ##0 number_bits_a_mask == a_size_int and
+	t ##0 tl_cpu2csr.a_address == addr and 	
+	t ##1 tl_cpu2csr.d_ready == 1'b1
+	implies
+	t ##0 ack_outstanding_d == 1'b1 and //holds
+	t ##1 tl_csr2cpu.a_ready == 1'b0 and //holds
+	t ##1 tl_csr2cpu.d_data == rd_data_csr_content and //holds
+	t ##1 tl_csr2cpu.d_valid == 1'b1 and //holds
+	t ##1 tl_csr2cpu.d_opcode == 3'h1 and //holds //AccessAckData = 3'h1
+	t ##1 tl_csr2cpu.d_source == host_source and //holds
+	t ##1 tl_csr2cpu.d_size == 2'b10 and
+	t ##1 tl_csr2cpu.d_error == 1'b0;
+endproperty
+
+for (genvar i = 0; i < TotalIbexCSR ; i++) 
+	begin 
+		a_csr_data_get_generic : assert property (@(posedge clk) disable iff (rst==0) csr_data_get_generic(32'h00000000 + NumberBytesRegisterNonPMP + i*(32'h00000004), i));
+	end
+
+
 property state_get_denied_reg_addr;
 	//Holds with or without commented assertions	
 	logic [31:0] denied_reg_addr_q_content;
