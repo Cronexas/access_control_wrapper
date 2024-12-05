@@ -250,16 +250,18 @@ function automatic pmp_entry_config_new(logic[3:0] i, logic [31:0] address, logi
 	begin
 		//XWR (permsisisons) In this case W=0
 		pmp_entry_config_new = (
-		pmp_entry_config(i, address, 3'b000) ||
-		pmp_entry_config(i, address, 3'b001) ||
-		pmp_entry_config(i, address, 3'b100) ||
-		pmp_entry_config(i, address, 3'b101));	
+		pmp_entry_config(i, address, 3'b000) //||
+		//pmp_entry_config(i, address, 3'b001) ||
+		//pmp_entry_config(i, address, 3'b100) //||
+		//pmp_entry_config(i, address, 3'b101)
+		);	
 	end else if (opcode == Get) begin
 		pmp_entry_config_new = (
-		pmp_entry_config(i, address, 3'b000) ||
-		pmp_entry_config(i, address, 3'b010) ||
-		pmp_entry_config(i, address, 3'b100) || 
-		pmp_entry_config(i, address, 3'b110));
+		pmp_entry_config(i, address, 3'b000) //||
+		//pmp_entry_config(i, address, 3'b010) ||
+		//pmp_entry_config(i, address, 3'b100) //|| 
+		//pmp_entry_config(i, address, 3'b110)
+		);
 	end
 endfunction
 

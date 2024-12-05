@@ -11,59 +11,6 @@ default clocking default_clk @(posedge clk); endclocking
 `include "Testbench/symbolic_pmp_with_symbolic_cfg.sv"
 
 `include "state_equivalence.sva"
-sequence U1_pmp2d_defined_all_except_valid_and_ready;
-	//Opcode 0 := PutFullData; 1 := PutPartialData; 4 := Get (Host -> Device)
-	//Opcode 0 := AccessAck(Put); 1 := AccessAckData (Get)  (Device -> Host)
-	//Pmp2d is of type Host ->Device
-	( U1.tl_pmp2d.a_opcode == 3'b000 or
-	 U1.tl_pmp2d.a_opcode == 3'b001 or
-	 U1.tl_pmp2d.a_opcode == 3'b100)  and
-	( U1.tl_pmp2d.a_param == 3'b000) and
-	( U1.tl_pmp2d.a_size == 2'b00 or
-	 U1.tl_pmp2d.a_size == 2'b01 or
-	 U1.tl_pmp2d.a_size == 2'b10)  and
-	( U1.tl_pmp2d.a_address >= 32'b0)  and
-	( U1.tl_pmp2d.a_mask == 4'b0000 or
-	 U1.tl_pmp2d.a_mask == 4'b0001 or
-	 U1.tl_pmp2d.a_mask == 4'b0010 or
-	 U1.tl_pmp2d.a_mask == 4'b0100 or
-	 U1.tl_pmp2d.a_mask == 4'b1000 or
-	 U1.tl_pmp2d.a_mask == 4'b0011 or
-	 U1.tl_pmp2d.a_mask == 4'b0110 or
-	 U1.tl_pmp2d.a_mask == 4'b1100 or
-	 U1.tl_pmp2d.a_mask == 4'b1111)  and
-	( U1.tl_pmp2d.a_data >= 32'b0) and
-	( U1.tl_pmp2d.a_user >= '0);
-	// tl_pmp2d.d_error == tl_d2pmp.d_error;
-endsequence
-
-sequence U2_pmp2d_defined_all_except_valid_and_ready;
-
-
-	//Opcode 0 := PutFullData; 1 := PutPartialData; 4 := Get (Host -> Device)
-	//Opcode 0 := AccessAck(Put); 1 := AccessAckData (Get)  (Device -> Host)
-	//Pmp2d is of type Host ->Device
-	( U2.tl_pmp2d.a_opcode == 3'b000 or
-	 U2.tl_pmp2d.a_opcode == 3'b001 or
-	 U2.tl_pmp2d.a_opcode == 3'b100)  and
-	( U2.tl_pmp2d.a_param == 3'b000) and
-	( U2.tl_pmp2d.a_size == 2'b00 or
-	 U2.tl_pmp2d.a_size == 2'b01 or
-	 U2.tl_pmp2d.a_size == 2'b10)  and
-	( U2.tl_pmp2d.a_address >= 32'b0)  and
-	( U2.tl_pmp2d.a_mask == 4'b0000 or
-	 U2.tl_pmp2d.a_mask == 4'b0001 or
-	 U2.tl_pmp2d.a_mask == 4'b0010 or
-	 U2.tl_pmp2d.a_mask == 4'b0100 or
-	 U2.tl_pmp2d.a_mask == 4'b1000 or
-	 U2.tl_pmp2d.a_mask == 4'b0011 or
-	 U2.tl_pmp2d.a_mask == 4'b0110 or
-	 U2.tl_pmp2d.a_mask == 4'b1100 or
-	 U2.tl_pmp2d.a_mask == 4'b1111)  and
-	( U2.tl_pmp2d.a_data >= 32'b0) and
-	( U2.tl_pmp2d.a_user >= '0);
-	// tl_pmp2d.d_error == tl_d2pmp.d_error;
-endsequence
 
 
 

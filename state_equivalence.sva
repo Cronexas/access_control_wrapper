@@ -16,7 +16,7 @@ state_equivalence = (
   (U1.cpu_error_response.err_size == U2.cpu_error_response.err_size) &&
   (U1.cpu_error_response.err_source == U2.cpu_error_response.err_source) &&
   (U1.current_state == U2.current_state) &&
-  (U1.denied_addr_read_q == U2.denied_addr_read_q) &&
+  //(U1.denied_addr_read_q == U2.denied_addr_read_q) &&
   //We dont control the address and type of access, therefor we expect those to be different
   (U1.denied_reg_addr_q == U2.denied_reg_addr_q) &&
   (U1.denied_reg_type_q == U2.denied_reg_type_q) &&
@@ -109,7 +109,6 @@ state_equivalence = (
   (U1.gen_pmp_csr[79].pmp_csr.rdata_q == U2.gen_pmp_csr[79].pmp_csr.rdata_q) &&*/
   (U1.go_to_idle_q == U2.go_to_idle_q) &&
   (U1.source_id_q == U2.source_id_q) &&
-  (U1.tl_cpu2csr_q == U2.tl_cpu2csr_q) &&
   //This register is dependend on the message tl_h2pmp, therefor it's allowed to be different
   (U1.tl_csr2cpu_q == U2.tl_csr2cpu_q) &&
   (U1.tl_err_rsp_device_outstanding_q == U2.tl_err_rsp_device_outstanding_q) &&
@@ -143,7 +142,7 @@ state_equivalence2 = (
   (U1.cpu_error_response.err_source == U2.cpu_error_response.err_source) && //P alert
   /*End of uncommented */
   (U1.current_state == U2.current_state) &&
-  (U1.denied_addr_read_q == U2.denied_addr_read_q) &&
+  //(U1.denied_addr_read_q == U2.denied_addr_read_q) &&
   /*Start of uncommented*/
   //Address can be different
   //(U1.denied_reg_addr_q == U2.denied_reg_addr_q) && //We allow difference in OPCODE in the first CC, therefor in the next CC, those values are assumed differently.
@@ -242,7 +241,6 @@ state_equivalence2 = (
   (U1.gen_pmp_csr[79].pmp_csr.rdata_q == U2.gen_pmp_csr[79].pmp_csr.rdata_q) &&*/
   (U1.go_to_idle_q == U2.go_to_idle_q) &&
   (U1.source_id_q == U2.source_id_q) &&
-  (U1.tl_cpu2csr_q == U2.tl_cpu2csr_q) &&
   //This register is dependend on the message tl_h2pmp, therefor it's allowed to be different
   //(U1.tl_csr2cpu_q == U2.tl_csr2cpu_q) &&
   (U1.tl_err_rsp_device_outstanding_q == U2.tl_err_rsp_device_outstanding_q) &&

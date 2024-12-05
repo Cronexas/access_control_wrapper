@@ -5,6 +5,7 @@ import ibex_pkg::*;
 import access_control_wrapper_reg_pkg::*;
 //Rename to fit Filename and Modulename
 module access_control_wrapper # (
+//parameter logic [31:0]		BaseAddress = 32'b0,
 parameter logic [23:0]		BaseAddress = 24'b0,
 parameter logic			NumPMPEntriesSelecter = 1'b0 //Default 0
 ) (
@@ -83,6 +84,7 @@ logic [7:0]			a_data_split[3:0];
 logic [7:0]			d_data_split[3:0];
 int 				constant_one = 1;
 int unsigned			cpu_addr_reg_abs;
+int unsigned			cpu_addr_buffer_abs;
 logic                           irq_d = 1'b0;
 logic[1:0]			current_state_q;
 logic 		            	go_to_idle_d = 1'b0;
@@ -95,11 +97,11 @@ logic                           err_rsp_sent_q;
 logic [7:0]                     source_id_d;
 logic [7:0]                     source_id_q;  
 
-logic [31:0]                    denied_reg_addr_d = 0;
-logic [31:0]                    denied_reg_addr_q;
+logic [31:0]                    denied_reg_addr_d = 32'b0;
+logic [31:0]                    denied_reg_addr_q = 32'b0;
 
-logic [2:0]                     denied_reg_type_d = 0;    
-logic [2:0]                     denied_reg_type_q;
+logic [2:0]                     denied_reg_type_d = 3'b011;    
+logic [2:0]                     denied_reg_type_q = 3'b011;
   
 logic                           ack_outstanding_d;      
 logic                           ack_outstanding_q;
@@ -128,8 +130,8 @@ logic				INTR_TEST_we_q= 1'b0;
 logic				wrong_tlul_opcode = 1'b0;
 logic[31:0]			address_matching_size = 32'h00000001;
 
-tl_d_op_e                       ack_opcode_d;
-tl_d_op_e                       ack_opcode_q;
+tl_d_op_e                       ack_opcode_d = 3'h0; //3 is an undefinied opcode 
+tl_d_op_e                       ack_opcode_q = 3'h0; //3 is also here undefinied
 
 //This is for debugging using symbolic pmp!
 logic [3:0] Register_d;
@@ -235,16 +237,16 @@ endgenerate
 		valid_size_matching = 1'b0;
 	end
 	//valid_size_matching = &(tl_cpu2csr.a_address &&  ( ( OneAs32Bit << tl_cpu2csr.a_size) ) ) ? 1'b0 : 1'b1;
+	//if (tl_cpu2csr.a_valid && tl_csr2cpu.a_ready && valid_size_matching ) begin
 	if (tl_cpu2csr.a_valid && tl_csr2cpu.a_ready && valid_size_matching && (tl_cpu2csr.a_address[31:10] == BaseAddress[23:0]) ) begin
 		source_id_d = tl_cpu2csr.a_source;
 		//Address of config register, relative to base address of ibex csr, relative here is also absolute
 		number_bits_a_mask = $countones(tl_cpu2csr.a_mask);
 		//absolute address in ibex csr it's byte addressable, but we direct addressing of bytes is not supported. therefor using masking bits and PartialData
-		//cpu_addr_reg_abs = '{'{24{1'b0}},tl_cpu2csr.a_address[9:2]};
+		//cpu_addr_buffer_abs = ( $unsigned(tl_cpu2csr.a_address[31:0]) - $unsigned(BaseAddress[31:0]) );
+		//cpu_addr_reg_abs = {2'b0,cpu_addr_buffer_abs[31:2]};
 		cpu_addr_reg_abs = {24'b0,tl_cpu2csr.a_address[9:2]};
 		
-		//Backup of previous implementation
-		//if ( (  tl_cpu2csr.a_opcode == PutFullData || tl_cpu2csr.a_opcode == PutPartialData ) && ( tl_cpu2csr.a_size == 2'b10 ) && ( &tl_cpu2csr.a_mask ) && (tl_cpu2csr.a_address[31:10] == BaseAddress[23:0]) ) begin                                                                  
 		if ( (  tl_cpu2csr.a_opcode == PutFullData || tl_cpu2csr.a_opcode == PutPartialData ) && ( tl_cpu2csr.a_size == 2'b10 )  ) begin                                                                  
 			
 			ack_opcode_d = AccessAck;
@@ -439,21 +441,17 @@ logic INTR_TEST_q_all_one;
 assign INTR_TEST_q_all_one = &INTR_TEST_q;
 
 
-logic denied_addr_read_d, denied_addr_read_q;
-logic denied_req_type_read_d, denied_req_type_read_q;
-
   ////////////////////////////////  --flip flop internal signals
   
   always_ff @(posedge clk, negedge rst) begin     
     if (!rst) begin                    
 	source_id_q <= 0;
 	err_rsp_sent_q <= 0;
-	ack_opcode_q <= 0;
+	ack_opcode_q <= 3'h3;
 	ack_outstanding_q <= 0;
 	denied_reg_addr_q <= 0;
 	denied_reg_type_q <= 0;
 	go_to_idle_q <= 0;
-	denied_addr_read_q <= 0;
 	denied_reg_type_q <= 0;
 	wr_en_csr <= {1'b0, 1'b0, 1'b0, 1'b0, 1'b0};
 	activate_cpu_err_resp_q <= 1'b0;
@@ -474,7 +472,6 @@ logic denied_req_type_read_d, denied_req_type_read_q;
 	denied_reg_addr_q <= denied_reg_addr_d;
 	denied_reg_type_q <= denied_reg_type_d;
 	go_to_idle_q <= go_to_idle_d;
-	denied_addr_read_q <= denied_addr_read_d;
 	//denied_reg_type_q <= denied_reg_type_d;
 	tl_csr2cpu_q <= tl_csr2cpu_d;
 	activate_cpu_err_resp_q <= activate_cpu_err_resp_d;
@@ -511,12 +508,12 @@ end
 		pmp_req_type [0] = PMP_ACC_WRITE;  			
 	end else if (tl_h2pmp.a_opcode == 3'h4) begin
 		pmp_req_type [0] = PMP_ACC_READ; 			
-	end else begin
+	end /*else begin
 		wrong_tlul_opcode = 1'b1;
 		//That might be exec or write, but ibex_pmp requires it to be set to any value.
 		// to avoid pmp_req_err to become X, we define it as EXEC here.
 		pmp_req_type [0] = PMP_ACC_EXEC;
-	end
+	end*/
     case(current_state)                  
               
       idle :	begin

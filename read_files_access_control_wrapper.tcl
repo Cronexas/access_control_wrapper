@@ -91,7 +91,9 @@ set_mode mv
 # Setting some check options for verification with upec:
 #set_check_option -approver1_steps -1 -approver2_steps 0 -approver3_steps 0 -approver4_steps 0 -disprover1_steps 0 -disprover2_steps 0 -disprover3_steps 0 -disprover4_steps 0 -disprover5_steps 0 -disprover6_steps 0 -prover1_steps 0 -prover2_steps 0 -prover3_steps 0 -local_processes 8 -prover_exec_order {{approver1:0}} -verbose
 set_check_option -local_processes 8
-
+#open "import/lab/users/dschwarz/Documents/ControL_Wrapper_TU_UL/access_control_wrapper/access_control_wrapper.sv" r+
+#open "import/lab/users/dschwarz/Documents/ControL_Wrapper_TU_UL/Testbench/access_control_wrapper/access_controll_wrapper_testbench.tda" r+
+#open "import/lab/users/dschwarz/Documents/ControL_Wrapper_TU_UL/access_control_wrapper/upec.sva" r+
 # Read your property file
 # rename with file with tidal-assertions
 #read_sva upec.sva
